@@ -466,15 +466,15 @@ class RiskDashboard {
                 const ul = document.createElement('ul');
                 ul.className = 'service-card-blank-items';
                 const items = [
-                    'Combined assurance',
-                    'DWB',
-                    'Policy localization',
+                    'Combined Assurance',
+                    'DWBs',
+                    'Policy Localization',
                     'Mandatory Training',
                     'RCA',
-                    'Risk control',
-                    'Risk reporting',
+                    'Risk Control',
+                    'Risk Reporting',
                     'Governance',
-                    'Reward'
+                    'Rewards'
                 ];
                 items.forEach(text => {
                     const li = document.createElement('li');
@@ -2651,4 +2651,5 @@ document.addEventListener('DOMContentLoaded', () => {
     // Quick debug helper accessible from console: setGauge( value )
     window.setGauge = v => dashboard.setGaugeValue(v);
     // No RPM runtime wiring required — RPM subsystem removed per request.
+
 });
