@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Risk Management Dashboard | ABSA</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header-thin">
+            <h1>Risk Management Dashboard</h1>
+        </header>
+
+        <div class="main-dashboard">
+            <div class="center-dashboard">
+                <div class="car-dashboard-wrapper">
+                    <div id="car-dashboard-svg" aria-hidden="false">
+                                                <!-- inlined SVG to allow file:// usage and reliable id lookup -->
+                                                <!-- truncated for brevity; full SVG in assets/risk-dashboard.svg will be embedded here at build time -->
+                        <div class="local-loader">
+                            <!-- Local data loading UI removed -->
+                        </div>
+                </div>
+                <!-- Gauge manual control removed in production view -->
+            </div>
+
+            <div class="side-panel right-panel">
+                <div class="alert-panel">
+                    <h3>System Alert</h3>
+                    <div class="alert-critical">
+                        <span class="alert-icon">⚠️</span>
+                        <span class="alert-message">No critical alerts</span>
+                    </div>
+                    <div class="alert-list" id="alert-list"></div>
+                </div>
+
+                    <!-- Service Card: clickable neon-blue container inserted between alerts and controls -->
+                <div class="service-card" id="service-card" tabindex="0" role="button" aria-label="Open Service Card Status">
+                    <div class="service-card-inner">
+                        <div class="service-card-title">Service Card</div>
+                        <!-- service-card summary intentionally left empty; details appear on the flipped service panel -->
+                        <div class="service-card-action blinking">Open Service Card Status</div>
+                    </div>
+                </div>
+
+                <div class="control-environment">
+                    <h4>Control Environment Status</h4>
+                    <!-- Service Card Details placed immediately under the heading so it appears directly below the title when flipped -->
+                </div>
+
+                <div class="control-items">
+    <!-- Service Card details moved to .service-panel back-face -->
+    <div class="control-item" id="esp-control" data-status="at-target">
+        <div class="control-header">
+            <span class="control-icon">
+                <!-- inline ESP icon, white, small -->
+                <svg width="20" height="16" viewBox="0 0 22.3 17.7" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <g fill="#fff">
+                        <path d="M11.18.72C6.7.72,3.06,4.37,3.06,8.85s3.65,8.13,8.13,8.13,8.13-3.65,8.13-8.13S15.66.72,11.18.72ZM11.18,15.45c-3.64,0-6.6-2.96-6.6-6.6s2.96-6.6,6.6-6.6,6.6,2.96,6.6,6.6-2.96,6.6-6.6,6.6Z"></path>
+                        <path d="M4.97,16.33c-.14-.1-3.38-2.61-3.38-7.48S4.83,1.48,4.97,1.37c.34-.25.4-.73.15-1.07-.25-.34-.73-.41-1.07-.15C3.89.27.07,3.2.07,8.85s3.82,8.58,3.99,8.7c.14.1.3.15.45.15.23,0,.46-.11.61-.3.25-.34.19-.81-.15-1.07Z"></path>
+                        <path d="M18.31.15c-.34-.25-.81-.18-1.07.15-.25.34-.19.81.15,1.07.14.1,3.38,2.61,3.38,7.48s-3.24,7.37-3.38,7.48c-.34.25-.4.73-.15,1.07.15.2.38.31.61.31.16,0,.32-.05.46-.15.16-.12,3.99-3.05,3.99-8.7S18.47.27,18.31.15Z"></path>
+                        <polygon points="7.4 8.93 9.13 8.93 9.13 8.43 7.4 8.43 7.4 6.94 9.23 6.94 9.23 6.44 6.81 6.44 6.81 11.12 9.33 11.12 9.33 10.62 7.4 10.62 7.4 8.93"></polygon>
+                        <path d="M11.41,8.47c-.62-.25-.89-.46-.89-.9,0-.32.23-.7.84-.7.4,0,.7.14.85.22l.16-.49c-.2-.11-.54-.22-.99-.22-.87,0-1.44.54-1.44,1.26,0,.65.45,1.06,1.17,1.33.61.24.85.49.85.93,0,.47-.34.8-.93.8-.4,0-.77-.14-1.03-.31l-.15.51c.24.17.71.31,1.15.31,1.05,0,1.56-.63,1.56-1.35s-.38-1.06-1.14-1.37Z"></path>
+                        <path d="M15.7,6.8c-.27-.25-.68-.39-1.25-.39-.46,0-.83.04-1.11.09v4.62h.58v-1.85c.12.02.29.03.48.03.55,0,1.05-.17,1.35-.51.23-.24.34-.58.34-1.01s-.15-.76-.39-.99ZM14.39,8.82c-.19,0-.38-.01-.48-.04v-1.85c.1-.02.28-.04.54-.04.64,0,1.05.3,1.05.93s-.42,1-1.12,1Z"></path>
+                    </g>
+                </svg>
+            </span>
+            <span class="control-name">Change Management</span>
+        </div>
+        <div class="control-status">Electronic Stability - Monitors org change</div>
+        <div class="status-indicator"></div>
+    </div>
+
+    <div class="control-item" id="engine-control" data-status="at-trigger">
+        <div class="control-header">
+            <span class="control-icon">
+                <!-- inline engine icon, white, small -->
+                <svg width="20" height="14" viewBox="0 0 20.28 13.91" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <g fill="#fff">
+                        <path d="M19.63,4.51s-.2-.45-.45-.45h-2.33c-.25,0-.45.2-.45.45v.44h-.63v-.73c0-.16-.17-.14-.17-.14h-1.41c0-2.21-1.12-2.21-1.12-2.21h-2.5v-.75h2.5V0H4.78v1.11h2.73v.75h-2.51l-1.51,1.15h-1.17c-.25,0-.45.2-.45.45v2.9h-.75v-3.09H0v7.77h1.11v-3.2h.75v3c0,.25.2.45.45.45h1.17l3.67,2.62h7.68c1.04,0,.93-.89.93-.89v-1.35h.63v1c0,.25.2.45.45.45h2.33c.25,0,.45-.45.45-.45l.65-1.89v-4.39l-.65-1.89ZM5.11,8.89c.29,0,.58-.06.77-.14l.10.36c-.17.08-.52.16-.96.16-1.02,0-1.79-.62-1.79-1.75s.77-1.81,1.9-1.81c.45,0,.74.09.86.15l-.11.36c-.18-.08-.43-.14-.73-.14-.85,0-1.42.52-1.42,1.42,0,.84.51,1.39,1.4,1.39ZM9.26,9.21h-.47v-1.62h-1.76v1.62h-.47v-3.45h.47v1.45h1.76v-1.45h.47v3.45ZM12.12,9.21h-2.05v-3.45h1.97v.37h-1.49v1.09h1.41v.37h-1.41v1.25h1.57v.37ZM14.4,8.89c.29,0,.58-.06.76-.14l.10.36c-.17.08-.52.16-.96.16-1.02,0-1.79-.62-1.79-1.75s.77-1.81,1.9-1.81c.45,0,.74.09.86.15l-.11.36c-.18-.08-.43-.14-.73-.14-.85,0-1.42.52-1.42,1.42,0,.84.51,1.39,1.4,1.39ZM17.86,9.21l-1.2-1.69-.34.38v1.31h-.47v-3.45h.47v1.66h.02c.10-.13.19-.26.29-.37l1.11-1.29h.58l-1.31,1.46,1.42,1.99h-.55Z"></path>
+                    </g>
+                </svg>
+            </span>
+            <span class="control-name">Country Control Environment</span>
+        </div>
+        <div class="control-status">Check Engine - Control gaps</div>
+        <div class="status-indicator"></div>
+    </div>
+
+    <div class="control-item" id="temp-control" data-status="at-risk">
+        <div class="control-header">
+            <span class="control-icon">
+                <!-- external temperature SVG (small, white) -->
+                <img src="assets/temperature-Warning Light.svg" alt="Temperature" width="20" height="16" aria-hidden="true" class="control-svg" style="filter:brightness(0) invert(1);">
+            </span>
+            <span class="control-name">Control Weaknesses &amp; Issues</span>
+        </div>
+        <div class="control-status">Temperature - Issue Management</div>
+        <div class="status-indicator"></div>
+    </div>
+
+    <div class="control-item" id="bulb-control" data-status="at-trigger">
+        <div class="control-header">
+            <span class="control-icon">
+                <!-- external bulb icon (small, white) -->
+                <img src="assets/bulb-malfunction-Warning Light.svg" alt="Bulb" width="20" height="16" aria-hidden="true" class="control-svg" style="filter:brightness(0) invert(1);">
+            </span>
+            <span class="control-name">Management Infomation</span>
+        </div>
+        <div class="control-status">Bulb - Data quality &amp; reporting</div>
+        <div class="status-indicator"></div>
+    </div>
+
+    <!-- engine icon moved into SVG artwork -->
+
+    <div class="control-item" id="abs-control" data-status="at-target">
+        <div class="control-header">
+            <span class="control-icon">
+                <!-- external ABS icon (small, white) -->
+                <img src="assets/ABS-Warning Light.svg" alt="ABS" width="20" height="16" aria-hidden="true" class="control-svg" style="filter:brightness(0) invert(1);">
+            </span>
+            <span class="control-name">Control Processes</span>
+        </div>
+        <div class="control-status">Anti-lock - control effectiveness</div>
+        <div class="status-indicator"></div>
+    </div>
+
+    <div class="control-item" id="srs-control" data-status="at-target">
+        <div class="control-header">
+            <span class="control-icon">
+                <!-- external SRS icon (small, white) -->
+                <img src="assets/srs-Warning Light.svg" alt="SRS" width="20" height="16" aria-hidden="true" class="control-svg" style="filter:brightness(0) invert(1);">
+            </span>
+            <span class="control-name">BCM &amp; Resilience</span>
+        </div>
+        <div class="control-status">Supplemental - Business continuity</div>
+        <div class="status-indicator"></div>
+    </div>
+
+    <div class="control-item" id="fuel-control" data-status="at-trigger">
+        <div class="control-header">
+            <span class="control-icon">
+                <!-- external fuel icon (small, white) -->
+                <img src="assets/fuel-Warning Light.svg" alt="Fuel" width="20" height="16" aria-hidden="true" class="control-svg" style="filter:brightness(0) invert(1);">
+            </span>
+            <span class="control-name">Appetite Consumption</span>
+        </div>
+        <div class="control-status">Fuel - Risk appetite utilization</div>
+        <div class="status-indicator"></div>
+    </div>
+
+    <div class="control-item" id="seatbelt-control" data-status="at-target">
+        <div class="control-header">
+            <span class="control-icon">
+                <!-- external seatbelt icon (small, white) -->
+                <img src="assets/seatbelt-Warning Light.svg" alt="Plan Testing" width="20" height="16" aria-hidden="true" class="control-svg" style="filter:brightness(0) invert(1);">
+            </span>
+            <span class="control-name">Plan Testing</span>
+        </div>
+        <div class="control-status">Seat Belt - Evidence &amp; Drills</div>
+        <div class="status-indicator"></div>
+    </div>
+
+    <div class="control-item" id="oil-control" data-status="at-target">
+        <div class="control-header">
+            <span class="control-icon">
+                <!-- external oil icon (small, white) -->
+                <img src="assets/oil-Warning Light.svg" alt="Oil" width="20" height="16" aria-hidden="true" class="control-svg" style="filter:brightness(0) invert(1);">
+            </span>
+            <span class="control-name">Capacity &amp; Capability</span>
+        </div>
+        <div class="control-status">Oil - Resource adequacy</div>
+        <div class="status-indicator"></div>
+    </div>
+
+    <div class="control-item" id="brake-control" data-status="at-target">
+        <div class="control-header">
+            <span class="control-icon">
+                <!-- external brake icon (small, white) -->
+                <svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20.65 28.37" width="20" height="16" aria-hidden="true" class="control-svg" style="filter:brightness(0) invert(1);">
+                    <defs>
+                        <style>
+                            .cls-1{fill:#333}
+                        </style>
+                    </defs>
+                    <path class="cls-1" d="M19.96,4.61h-1.26v-.03s-.13-.28-.13-.28c-.42-.86-1.87-3.71-3.02-4.24l-.14-.06h-7.79l-.14.06c-1.15.53-2.61,3.38-3.02,4.24l-.14.28v.03s-1.25,0-1.25,0c-.38,0-.69.27-.69.6v.64c0,.33.31.6.69.6h.4c-.04.2-.07.41-.07.63v2.86c0,.86.34,1.61.86,2.08v2.36c0,.38.31.69.69.69h1.55c.38,0,.69-.31.69-.69v-1.87h8.63v1.87c0,.38.31.69.69.69h1.55c.38,0,.69-.31.69-.69v-2.36c.52-.47.86-1.22.86-2.08v-2.86c0-.22-.03-.43-.07-.63h.4c.38,0,.69-.27.69-.6v-.64c0-.33-.31-.6-.69-.6ZM7.96,1.38h7.12c.47.36,1.36,1.77,2.05,3.12H5.91c.69-1.35,1.58-2.76,2.05-3.12Z"></path>
+                    <g>
+                        <path class="cls-1" d="M6.44,17.37s.32.06.86.22c.27.09.6.2.97.39.37.2.79.43,1.19.93.2.24.37.62.39,1.04,0,.2-.04.42-.09.62l-.12.27-.06.14-.03.07-.07.09-.06.08s-.04.06-.09.11c-.08.09-.19.19-.26.25-.15.13-.31.23-.47.32-.31.17-.63.28-.94.38-1.23.38-2.47.5-3.62.73-.57.12-1.12.23-1.52.41-.2.09-.34.19-.38.24-.04.06-.02.01-.02.08h0c0,.09,0-.12,0-.09h0s0,.02,0,.02v.05s.02.11.02.11l.02.21c0,.09.02.09.03.12.01.03.02.05.03.08,0,.04.06.16.09.24.03.09.08.17.13.26.19.35.45.69.72,1,.54.62,1.08,1.13,1.47,1.49.39.36.61.57.61.57h0c.13.13.14.34.01.48-.08.08-.18.11-.28.1,0,0-.34-.04-.88-.21-.27-.09-.6-.21-.96-.38-.36-.18-.77-.39-1.18-.71-.41-.31-.85-.69-1.22-1.24-.1-.13-.19-.27-.27-.43-.08-.17-.17-.29-.23-.52-.04-.1-.07-.21-.1-.32-.03-.1-.06-.23-.06-.29l-.03-.21v-.11s-.02-.05-.02-.05h0s0-.02,0-.02v-.11s0-.05,0-.05c-.02-.51.23-1.14.6-1.51.37-.38.76-.58,1.11-.73.72-.28,1.37-.4,2.01-.49,1.27-.17,2.49-.22,3.49-.41.49-.11.9-.24,1.05-.42.15-.17.2-.27.09-.54-.12-.26-.4-.53-.66-.74-.26-.22-.53-.38-.74-.51-.44-.27-.71-.4-.71-.4-.16-.07-.23-.27-.16-.43.06-.13.21-.2.35-.18h0Z"></path>
+                        <path class="cls-1" d="M17.25,17.37s.32.06.86.22c.27.09.6.2.96.39.37.2.79.43,1.19.93.2.24.37.62.39,1.04,0,.2-.04.42-.09.62l-.12.27-.06.14-.03.07-.07.09-.06.08s-.04.06-.09.11c-.08.09-.19.19-.26.25-.15.13-.31.23-.47.32-.32.17-.63.28-.94.38-1.23.38-2.46.5-3.62.73-.57.12-1.12.23-1.53.41-.2.09-.34.19-.38.24-.04.06-.02.01-.02.08h0c0,.09,0-.12,0-.09h0s0,.02,0,.02v.05s.02.11.02.11l.02.21c0,.09.02.09.03.12.01.03.02.05.03.08,0,.04.06.16.09.24.03.09.08.17.13.26.19.35.44.69.72,1,.54.62,1.08,1.13,1.47,1.49.39.36.61.57.61.57h0c.13.13.14.34.01.48-.08.08-.18.11-.28.1,0,0-.34-.04-.88-.21-.27-.09-.6-.21-.96-.38-.36-.18-.77-.39-1.18-.71-.41-.31-.85-.69-1.22-1.24-.1-.13-.19-.27-.27-.43-.08-.17-.17-.29-.23-.52-.04-.1-.07-.21-.1-.32-.03-.1-.06-.23-.06-.29l-.03-.21v-.11s-.02-.05-.02-.05h0s0-.02,0-.02v-.11s0-.05,0-.05c-.02-.51.23-1.14.6-1.51.36-.38.76-.58,1.11-.73.72-.28,1.37-.4,2.01-.49,1.27-.17,2.49-.22,3.49-.41.5-.11.9-.24,1.05-.42.15-.17.2-.27.09-.54-.12-.26-.4-.53-.66-.74-.26-.22-.53-.38-.74-.51-.44-.27-.71-.4-.71-.4-.16-.07-.23-.27-.16-.43.06-.13.21-.2.35-.18h0Z"></path>
+                    </g>
+                </svg>
+            </span>
+            <span class="control-name">Structure</span>
+        </div>
+        <div class="control-status">Traction Control - Capacity</div>
+        <div class="status-indicator"></div>
+    </div>
+</div>
+
+                <div class="panel-footer">
+                    <span class="update-time">Last Updated: <span id="last-updated"></span></span>
+                    </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+        
+</body>
+</html>

@@ -1,0 +1,48 @@
+{
+  "issuesOpenValue": 227,
+  "netLossValue": "79.80 M",
+  "grossLossValue": "113.00 M",
+  "ytdRiskEvents": 202,
+  "dynamicValue285": "61.38%",
+  "dynamicValue287": 5,
+  "percentValue": 14.29,
+  "gaugeValue": 24,
+  "alerts": [
+    {
+      "id": "alert-1",
+      "message": "Control Weaknesses At-Risk",
+      "status": "at-risk"
+    }
+  ],
+  "controlSystems": {
+    "changeManagement": "at-target",
+    "controlEnvironment": "at-trigger",
+    "controlWeaknesses": "at-risk",
+    "managementInfo": "at-trigger",
+    "controlProcesses": "at-target",
+    "bcmResilience": "at-target",
+    "appetiteConsumption": "at-trigger",
+    "PlanTesting": "yes",
+    "leftIndicator": "at-risk",
+    "rightIndicator": "at-risk",
+    "headlight": "at-risk",
+  "capacity": "at-target"
+  },
+  "svgElementMappings": {
+    "changeManagement": "esp-warning-light",
+    "controlEnvironment": "engine-warning-light",
+    "controlWeaknesses": "temp-warning-light",
+    "managementInfo": "bulb-warning-light",
+    "controlProcesses": "abs-warning-light",
+    "bcmResilience": "srs-warning-light",
+    "appetiteConsumption": "fuel-warning-light",
+    "PlanTesting": "seatbelt-warning-light",
+    "leftIndicator": "left-indicator-warning-light",
+    "rightIndicator": "right-indicator-warning-light",
+    "headlight": "headlight-warning-light",
+  "capacity": "oil-warning-light"
+  },
+  "metadata": {
+    "lastUpdated": "2025-01-15T14:30:00Z"
+  }
+}

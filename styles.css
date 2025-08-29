@@ -1,0 +1,1193 @@
+:root {
+  /* ABSA maroon theme */
+  --absa-red: #7A001F; /* primary maroon */
+  --absa-red-dark: #580014; /* darker maroon */
+  --absa-red-light: #A5122B; /* lighter maroon accent */
+  --absa-black: #000000;
+  --absa-white: #ffffff;
+  --absa-grey-light: #f5f5f5;
+  --absa-grey: #e0e0e0;
+  --absa-grey-dark: #666666;
+
+  --status-green: #00e676;
+  --status-amber: #ffab00;
+  --status-red: #E4002B; /* bright red used for at-risk status */
+  --status-blue: #00b8d4;
+
+  --bg-primary: #120406; /* near-black with maroon hint */
+  --bg-secondary: #16060a;
+  --bg-card: #1f0a0d;
+  --text-primary: #ffffff;
+  --text-secondary: #e0e0e0;
+  --border-color: #321018;
+  --accent-glow: rgba(122,0,31,0.9);
+
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
+
+  /* danger glow should be bright red for at-risk blinking */
+  --glow-red: 0 0 10px rgba(228, 0, 43, 0.9);
+  --glow-green: 0 0 10px rgba(0, 230, 118, 0.8);
+  --glow-amber: 0 0 10px rgba(255, 171, 0, 0.8);
+  --glow-blue: 0 0 12px rgba(0, 184, 212, 0.9);
+  /* animation timing tokens */
+  --anim-fast: 160ms;
+  --anim-medium: 320ms;
+  --anim-long: 520ms;
+  --anim-ease: cubic-bezier(.22,.9,.27,1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #000 !important;
+  color: var(--text-primary);
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: #000 !important;
+  overflow: hidden;
+}
+
+.dashboard-header-thin {
+  background: var(--absa-red);
+  padding: 0.2rem 0.5rem;
+  text-align: center;
+}
+
+.dashboard-header-thin h1 {
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.main-dashboard {
+  flex: 1;
+  display: flex;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.center-dashboard {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.car-dashboard-wrapper {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  background: #000 !important;
+  /* soften the hard border and blend edges into page background */
+  border: 1px solid rgba(122,0,31,0.06);
+  border-radius: 8px;
+  box-shadow: inset 0 12px 40px rgba(0,0,0,0.75), 0 8px 28px rgba(0,0,0,0.6);
+  position: relative;
+  padding: 0;
+  aspect-ratio: unset;
+  overflow: hidden;
+}
+
+/* subtle radial fade that blends the wrapper edge to the page background */
+/* outer blend: soft layered radial + linear fade with slight blur for a natural edge */
+.car-dashboard-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: -22px; /* extend slightly outside the wrapper */
+  border-radius: 14px;
+  pointer-events: none;
+  z-index: 0;
+  /* layered gradients: center stays clear, edges softly pick up page background color */
+  background-image: 
+    radial-gradient(60% 60% at 50% 50%, rgba(18,4,6,0) 56%, rgba(18,4,6,0.06) 72%, rgba(18,4,6,0.12) 86%, rgba(18,4,6,0.18) 96%),
+    linear-gradient(180deg, rgba(18,4,6,0) 0%, rgba(18,4,6,0.04) 40%, rgba(18,4,6,0.08) 100%);
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: blur(6px) saturate(0.95);
+  mix-blend-mode: normal;
+}
+
+/* inner sheen to add depth and make the edge feel softer */
+.car-dashboard-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+  mix-blend-mode: overlay;
+}
+
+/* ensure wrapper content sits above the blend layer */
+.car-dashboard-wrapper > * { position: relative; z-index: 1; }
+
+/* Decorative start icon anchored inside the dashboard wrapper */
+.car-dashboard-wrapper { position: relative; }
+.dashboard-start-button {
+  position: absolute;
+  right: 20px;
+  bottom: 32px;
+  display: inline-grid;
+  place-items: center;
+  width: clamp(28px, 5vw, 48px);
+  height: auto;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  /* smooth, slightly snappy transform for press/release */
+  transition: transform var(--anim-fast) var(--anim-ease), box-shadow var(--anim-medium) var(--anim-ease);
+}
+.dashboard-start-button img { width: 100%; height: auto; display:block; pointer-events:none; }
+.dashboard-start-button:focus {
+  /* when focused via mouse or programmatically, keep visuals minimal (no visible border) */
+  outline: none;
+  box-shadow: none;
+}
+
+/* Engine Start/Stop icon placed at bottom center of dashboard container */
+.engine-icon-inline { margin-top: 8px; display:flex; justify-content:center; }
+.engine-icon-inline img { width:36px; height:auto; display:block; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.45)); }
+.dashboard-start-button:focus-visible {
+  /* keep an accessible visible focus only for keyboard users */
+  outline: 3px solid rgba(255,255,255,0.06);
+  outline-offset: 4px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.45);
+}
+.dashboard-start-button:hover { transform: translateY(0) scale(1.02); }
+.dashboard-start-button:active {
+  /* push-in effect that is smooth and noticeable; remove outline while active */
+  transform: translateY(2px) scale(0.96);
+  transition-duration: var(--anim-fast);
+  outline: none;
+  box-shadow: none;
+}
+
+.car-dashboard-wrapper[data-rp-base] .dashboard-start-button { transform: scale(calc(var(--rp-base, 1) / 18)); }
+
+.local-loader { position: absolute; left: 8px; bottom: 8px; font-size: 12px; color: #ddd; }
+.local-loader input { display: block; margin-top: 4px; }
+
+#car-dashboard-svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  position: relative;
+}
+
+.gauge-overlays {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.gauge {
+    flex: 1 1 auto;
+    padding: 0;
+    gap: 0;
+    min-width: 0;
+    min-height: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(228, 0, 43, 0.1), rgba(0, 0, 0, 0.9));
+  border: 2px solid var(--absa-red);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+
+.gauge-label {
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  color: var(--text-primary);
+}
+
+.gauge-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--absa-red-light);
+  text-shadow: var(--glow-red);
+}
+
+/* Ensure numeric values in the gauges render white in the main view (override any SVG fill or inherited grey) */
+.gauge-value,
+.gauge-label,
+.car-dashboard-wrapper svg text.gauge-value,
+#percent-dynamic-value,
+#rpm-value,
+#speed-value,
+text.percent-dynamic-value,
+.car-dashboard-wrapper svg text {
+  fill: #ffffff !important;
+  color: #ffffff !important;
+}
+
+.fuel-gauge-risk { top: 25%; left: 10%; }
+.service-card { margin: 12px 8px; padding: 8px; border-radius: 8px; background: linear-gradient(90deg, rgba(0,191,255,0.08), rgba(0,191,255,0.12)); border: 1px solid rgba(0,191,255,0.18); cursor: pointer; }
+.service-card-inner { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.service-card-title { color: #dfeff6; font-weight:600; }
+.service-card-action { color: #00bfff; font-weight:700; text-align:right; }
+.service-card:focus { outline: 3px solid rgba(0,191,255,0.12); outline-offset: 2px; }
+.service-card:active { transform: translateY(1px); }
+.service-card-action:focus { outline: none; }
+
+/* blinking neon-blue action text */
+.service-card-action.blinking {
+  animation: service-neon-blink 1s infinite;
+  text-shadow: 0 0 8px rgba(0,191,255,0.9), 0 0 16px rgba(0,191,255,0.6);
+}
+@keyframes service-neon-blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.35; }
+  100% { opacity: 1; }
+}
+/* Service panel checkmark styling */
+.service-check {
+
+/* Return button when flipped */
+.service-card-return {
+  display: inline-block;
+  margin-top: 0.12rem;
+  padding: 0.12rem 0.25rem; /* compact to match action text height */
+  background: transparent;
+  border: none;
+  color: #00bfff; /* match action color */
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: inherit;
+}
+.service-card-return:focus { outline: 2px solid rgba(0,184,212,0.12); }
+
+  color: #4dff4d; /* bright green */
+  margin-right: 8px;
+  font-weight: 700;
+  display: inline-block;
+  width: 1.2em;
+  text-align: left;
+}
+
+.service-list {
+  margin-top: 0.4rem;
+  list-style: none;
+  padding-left: 0;
+  color: #dfeff6;
+}
+.service-list li {
+  padding: 0.25rem 0;
+  font-size: 0.95rem;
+}
+
+/* Service card standalone page and clean back-face styling */
+.service-card-page { padding: 1rem; color: var(--text-primary); background: linear-gradient(180deg, rgba(18,4,6,0.98), rgba(18,4,6,0.96)); min-height: 100vh; }
+.service-card-front h2 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+.service-card-summary { color: #bfbfbf; margin-bottom: 1rem; }
+.service-card-details .service-item-label { display:block; font-weight:700; color:#e6eef5; }
+.service-card-details .service-desc { color:#cfcfcf; font-size:0.92rem; margin-top:0.08rem; }
+
+/* Clean page area for user content */
+.clean-page .clean-container { min-height: 320px; border: 1px dashed rgba(255,255,255,0.06); padding: 16px; border-radius: 8px; background: rgba(255,255,255,0.01); }
+
+/* Modal-like overlay used when opening the service card from index.html */
+.service-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.service-modal { width: min(720px, 96vw); max-height: 90vh; overflow: auto; background: linear-gradient(180deg, #0f0c0d, #121212); border-radius: 12px; padding: 12px; box-shadow: var(--shadow-lg); border: 1px solid rgba(255,255,255,0.04); }
+.service-modal .service-card-page { min-height: auto; background: transparent; padding: 0; }
+
+/* presentable check icon used in service lists */
+.service-check { display: inline-flex; align-items: center; justify-content: center; width: 28px; margin-right: 10px; }
+.service-check-icon { display: block; width: 20px; height: 20px; flex: 0 0 20px; }
+.service-check-icon path { fill: #fff; }
+.service-check-icon circle { stroke: rgba(0,0,0,0.08); stroke-width: 0; }
+.service-list li .service-text { vertical-align: middle; display: inline-block; }
+
+
+.speed-gauge {
+  bottom: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 110px;
+  height: 110px;
+}
+.fuel-gauge-appetite { bottom: 25%; left: 10%; }
+
+.financial-display {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 0.5rem;
+  border: 1px solid var(--absa-red);
+  border-radius: 8px;
+}
+
+.fin-label {
+  font-size: 0.5rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.fin-value {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--absa-red-light);
+}
+
+.fin-value.negative {
+  color: var(--status-red);
+  text-shadow: var(--glow-red);
+}
+
+.warning-indicators {
+  position: absolute;
+  top: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1rem;
+}
+
+.indicator {
+  width: 30px;
+  height: 30px;
+  background: rgba(0, 0, 0, 0.9);
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.indicator svg {
+  width: 16px;
+  height: 16px;
+  fill: var(--text-secondary);
+  opacity: 0.3;
+}
+
+.indicator.active {
+  border-color: var(--status-green);
+  box-shadow: var(--glow-green);
+  animation: pulse-indicator 1.5s infinite;
+}
+
+.indicator.active svg {
+  fill: var(--status-green);
+  opacity: 1;
+}
+
+/* SVG embedded engine start/stop image styling */
+#car-dashboard-svg svg #engine-start-stop {
+  cursor: pointer;
+  outline: none;
+}
+#car-dashboard-svg svg #engine-start-stop:focus {
+  filter: drop-shadow(0 0 8px rgba(82,187,255,0.9));
+}
+#car-dashboard-svg svg #engine-start-stop.engine-active {
+  filter: drop-shadow(0 0 12px rgba(0,220,120,0.95));
+}
+
+@keyframes pulse-indicator {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.seatbelt-indicator {
+  position: absolute;
+  bottom: 5%;
+  right: 5%;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.625rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+}
+
+.seatbelt-indicator svg {
+  width: 16px;
+  height: 16px;
+  fill: var(--text-secondary);
+}
+
+.seatbelt-indicator.active {
+  border-color: var(--status-green);
+  box-shadow: var(--glow-green);
+}
+
+/* Right Panel */
+.right-panel {
+  /* fit the panel width to its contents so headings don't leave trailing space */
+  width: max-content;
+  min-width: 240px; /* safe minimum to avoid collapsing on tiny screens */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.4rem;
+  background: #18191c !important;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  /* allow the right panel to stretch to the height of its flex row parent */
+  align-self: stretch;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible; /* avoid forcing internal scrollbars */
+  align-items: stretch;
+}
+
+/* Right-panel typography scale variables and intelligent sizing */
+.right-panel {
+  /* base size adapts to viewport width but stays within readable bounds */
+  /* further reduced scale to fit the page and match requested hierarchy */
+  --rp-base: clamp(0.58rem, 0.6rem + 0.18vw, 0.7rem);
+  --rp-small: calc(var(--rp-base) * 0.92);
+  --rp-large: calc(var(--rp-base) * 1.02);
+  --rp-xlarge: calc(var(--rp-base) * 1.14);
+  --rp-line: 1.18;
+  font-size: var(--rp-small);
+  line-height: var(--rp-line);
+}
+
+/* Increase sizes for primary elements inside the right panel */
+.right-panel .alert-panel { font-size: var(--rp-large); padding: 0.12rem 0.16rem; }
+.right-panel .alert-panel h3 { font-size: calc(var(--rp-xlarge) * 1); margin-bottom: 0.1rem; color: var(--text-primary); font-weight:700; }
+.right-panel .alert-critical { font-size: var(--rp-base); padding: 0.12rem; }
+.right-panel .alert-item { font-size: var(--rp-base); padding: 0.1rem; }
+
+.right-panel .control-environment h4 { font-size: calc(var(--rp-xlarge) * 0.98); color: var(--text-primary); font-weight:700; margin-bottom:0.12rem; }
+
+/* Make the Control Environment header container fit its content and opt out of flex resizing
+   so the element keeps a stable width and does not auto-adjust when the viewport changes. */
+.right-panel .control-environment {
+  display: inline-block;      /* shrink to content width */
+  width: -webkit-fit-content;
+  width: -moz-fit-content;
+  width: fit-content;
+  min-width: auto;            /* remove inherited min-width constraints */
+  max-width: none;           /* allow it to remain content-sized */
+  flex: 0 0 auto;            /* do not grow or shrink in flex layouts */
+  align-self: flex-start;    /* keep it aligned to the start, not stretched */
+  white-space: nowrap;       /* avoid internal wrapping which would change width */
+  overflow: visible;         /* prevent clipping */
+}
+.right-panel .control-item { font-size: var(--rp-base); padding: 0.08rem 0.12rem; }
+.right-panel .control-header { gap: 0.08rem; }
+.right-panel .control-icon { font-size: 0.5rem; min-width: 16px; padding: 0.04rem 0.08rem; }
+.right-panel .control-name { font-size: calc(var(--rp-large) * 0.98); color: var(--text-primary); font-weight:600; }
+.right-panel .control-status { font-size: calc(var(--rp-small) * 0.96); color: #bfbfbf; }
+
+.right-panel .service-panel .service-panel-content { padding: 0.22rem; }
+.right-panel .service-list li { padding: 0.22rem 0.28rem; gap: 0.28rem; }
+.right-panel .service-item-label { font-size: calc(var(--rp-base) * 1.18); color: #cfcfcf; font-weight: 600; }
+.right-panel .service-item-icon { min-width: 16px; font-size: 12px; }
+.right-panel .service-item-icon svg { width: 14px; height: 14px; }
+
+/* Slightly reduce the scale on very small screens to prevent overflow */
+@media (max-width: 420px) {
+  .right-panel { --rp-base: clamp(0.64rem, 0.66rem + 0.2vw, 0.75rem); }
+  .right-panel .control-icon { min-width: 16px; }
+  .right-panel .service-list li { padding: 0.22rem 0.26rem; }
+}
+
+/* Alert Panel */
+.alert-panel {
+  background: #18191c !important;
+  padding: 0.18rem 0.25rem; /* tighter */
+  border: 1px solid var(--absa-red);
+  border-radius: 6px;
+  font-size: 0.5rem;
+  min-height: 48px;
+  max-height: none;
+  overflow: visible;
+}
+
+.alert-panel h3 {
+  font-size: 0.6rem;
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+  color: var(--absa-red-light);
+  letter-spacing: 0.08em;
+}
+
+.alert-critical {
+  background: rgba(255, 0, 0, 0.05);
+  border: 1px solid var(--status-red);
+  border-radius: 4px;
+  padding: 0.25rem;
+  font-size: 0.55rem;
+  cursor: pointer;
+}
+
+.alert-critical.blinking {
+  animation: blink-alert 1.2s infinite;
+  box-shadow: var(--glow-red);
+}
+
+.alert-item {
+  background: rgba(255, 171, 0, 0.05);
+  border: 1px solid var(--status-amber);
+  border-radius: 4px;
+  padding: 0.18rem;
+  margin-top: 0.18rem;
+  font-size: 0.5rem;
+}
+
+.alert-item[data-status="at-trigger"] {
+  background: rgba(255, 171, 0, 0.06);
+  border-color: var(--status-amber);
+}
+.alert-item[data-status="at-risk"] {
+  background: rgba(228, 0, 43, 0.06);
+  border-color: var(--status-red);
+}
+
+.alert-item.blinking {
+  animation: blink-alert 1.2s infinite;
+}
+
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  margin-top: 0.12rem;
+  max-height: none;
+  overflow: visible;
+  padding-right: 0.12rem;
+  background: #000 !important;
+  border-radius: 6px;
+  padding: 0.12rem;
+}
+
+@keyframes blink-alert {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: var(--glow-red);
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 20px rgba(228, 0, 43, 1);
+    transform: scale(1.02);
+  }
+}
+
+/* Control Environment */
+.control-environment {
+  background: #18191c !important;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.18rem;
+  flex: 1 1 auto; /* expand to fill remaining vertical space */
+  min-height: 0; /* allow flex child to shrink properly */
+  height: auto;
+  max-height: none;
+  overflow: visible; /* show all contents without internal scrollbar */
+  margin-top: 0 !important;
+}
+
+.control-environment h4 {
+  font-size: calc(var(--rp-xlarge) * 1);
+  margin-bottom: 0.12rem;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  white-space: nowrap; /* keep header on single line */
+}
+
+/* Small label used for anchors placed inside the SVG artwork */
+.anchor-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  fill: #cfcfcf; /* SVG text fill - light grey */
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.control-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  background: #000 !important;
+  border-radius: 6px;
+  padding: 0.18rem;
+  box-shadow: var(--shadow-sm);
+}
+
+/* 3D flip: front = the list of control-items, back = the in-panel service-panel */
+.control-environment {
+  /* perspective gives the 3D depth for the flip; slightly larger for smoother parallax */
+  perspective: 1400px;
+  /* subtle control over where the 3D camera is centered for a more natural flip */
+  perspective-origin: 50% 20%;
+  position: relative; /* ensure service-panel positions relative to this container */
+  overflow: visible; /* allow service-panel to be visible when flipped */
+}
+
+/* Ensure control-environment has proper height when flipped to show service-panel */
+.control-environment.flipped {
+  /* allow the flipped container to shrink to its content (the heading + panel)
+     instead of forcing a large min-height. This makes the flipped face 'squeeze' to
+     the words and any short list content. */
+  min-height: auto;
+  height: auto;
+  flex: 0 0 auto; /* don't stretch in the flex column when flipped */
+}
+
+/* When flipped, expand the control-environment to fill its parent horizontally so the
+   revealed service-card content reaches the panel edge. This forces full-width layout
+   and neutralises small paddings that prevent edge-to-edge appearance. */
+.right-panel .control-environment.flipped {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  box-sizing: border-box;
+  align-self: stretch;
+}
+
+/* Ensure the back face (service-panel) also stretches edge-to-edge inside the flipped container */
+.control-environment.flipped .service-panel {
+  left: 0; right: 0; width: 100%;
+  padding-left: 0; padding-right: 0;
+}
+
+/* Add a mild perspective to the whole control-environment so 3D rotations feel natural */
+.control-environment {
+  perspective: 1400px;
+  perspective-origin: 50% 40%;
+  -webkit-font-smoothing: subpixel-antialiased;
+}
+
+.control-items {
+  /* enable 3D child transforms and animate the rotation */
+  transform-style: preserve-3d;
+  /* transform origin: pivot slightly above center for a card-like flip */
+  transform-origin: 50% 12%;
+  /* refined timing and easing for a smooth, natural flip */
+  transition: transform 720ms cubic-bezier(.22,.9,.28,1), box-shadow 420ms ease;
+  will-change: transform;
+  position: relative; /* establish stacking context for absolute back face */
+  transform: translateZ(0);
+  z-index: 1; /* lower than service-panel */
+}
+
+.control-item,
+.service-panel {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+/* The service-panel acts as the back face; rotate it so it faces front when parent is flipped */
+.service-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* place panel just below the header; let its height be determined by content */
+  top: 2rem;
+  padding: 0.25rem 0.18rem;
+  background: transparent; /* panel content handles its own background */
+  /* slightly forward in Z so the back face reads as a distinct surface during the flip */
+  transform: rotateY(180deg) translateZ(48px);
+  visibility: hidden;
+  opacity: 0;
+  will-change: transform, opacity;
+  transition: transform 720ms cubic-bezier(.22,.9,.28,1), opacity 260ms ease 40ms, visibility 1ms linear 300ms;
+  z-index: 10; /* higher than control-items */
+  height: auto; /* size to content */
+  bottom: auto;
+}
+
+/* When flipped, position service-panel to start below the h4 heading */
+.control-environment.flipped .service-panel {
+  top: 2rem; /* adjust to start below the h4 element */
+}
+
+/* When showing the SERVICE CARD DETAILS view, give the heading a small allowance
+   from the left/right edges so the title doesn't sit flush against the container. */
+.control-environment.flipped h4 {
+  padding: 0 0.6rem !important;
+  box-sizing: border-box;
+}
+
+.service-panel .service-panel-content {
+  height: auto; /* let content determine height */
+  max-height: calc(60vh); /* avoid growing beyond a comfortable viewport height */
+  overflow: auto;
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 0.5rem;
+  box-shadow: var(--shadow-md);
+}
+
+.service-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0;
+  margin: 0.25rem 0 0 0;
+}
+
+.service-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.15);
+}
+
+/* Cleaned service-card details block */
+.service-card-details { padding: 0.25rem 0.35rem; }
+.service-card-details .service-card-details-inner { padding: 0.25rem; }
+.service-card-details .service-panel-title { color: #dfeff6; font-weight: 700; margin-bottom: 0.35rem; font-size: 0.95rem; }
+.service-card-details .service-list li { background: transparent; padding: 0.2rem 0; }
+
+/* Independent right-side service card pane shown after flip */
+.service-card-independent {
+  position: fixed;
+  right: 12px;
+  top: 86px;
+  width: min(420px, 36vw);
+  max-height: calc(100vh - 120px);
+  background: linear-gradient(180deg,#0b0b0c,#0f0f10);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  overflow: auto;
+  transform: translateX(12px) scale(0.98);
+  opacity: 0;
+  transition: transform 280ms cubic-bezier(.2,.9,.18,1), opacity 260ms ease;
+  z-index: 9999;
+}
+.service-card-independent.visible { transform: translateX(0) scale(1); opacity: 1; }
+.service-card-independent .service-card-page { background: transparent; padding: 0; }
+.service-card-independent-close {
+  position: absolute; right: 10px; top: 8px; background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.04); padding: 6px 8px; border-radius: 6px; cursor: pointer;
+}
+
+/* Accessible focus styles for service list items */
+.service-list li:focus {
+  outline: 3px solid rgba(0,191,255,0.12);
+  outline-offset: 2px;
+  background: rgba(255,255,255,0.02);
+}
+
+.service-panel-title {
+  color: #dfeff6;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+/* non-interactive list: default cursor and no focus outline */
+.service-list li { cursor: default; }
+
+/* service item icon (status) */
+.service-item-icon {
+  min-width: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 3px;
+}
+
+.service-item-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  fill: currentColor;
+}
+
+.service-item-icon.ok {
+  color: var(--status-green);
+  background: rgba(0,230,118,0.06);
+}
+
+.service-item-icon.fail {
+  color: var(--status-red);
+  background: rgba(228,0,43,0.06);
+}
+
+.service-list li.failed {
+  border: 1px solid rgba(228,0,43,0.12);
+}
+
+/* When the control-environment is flipped, rotate the front to reveal the back */
+.control-environment.flipped .control-items {
+  /* push the front slightly away while revealing the back to give depth */
+  transform: rotateY(180deg) translateZ(-48px);
+}
+
+/* When rotated, reveal the service-panel back face */
+.control-environment.flipped .service-panel {
+  visibility: visible;
+  opacity: 1;
+  top: 2rem; /* position below the h4 heading */
+  bottom: 0; /* ensure it fills the available space */
+  /* bring the back face forward during the flip for a clearer 3D effect */
+  transform: rotateY(180deg) translateZ(48px);
+  transition-delay: 40ms;
+}
+
+/* Keep front control-items visually hidden while flipped (they are back-facing) */
+.control-environment.flipped .control-item {
+  transform: rotateY(180deg) translateZ(0);
+  /* subtle depth and highlight during flip */
+  box-shadow: 0 8px 30px rgba(0,0,0,0.42);
+  pointer-events: none;
+}
+
+/* Ensure the service-panel content itself can accept pointer events */
+.control-environment .service-panel .service-panel-content {
+  pointer-events: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.5rem;
+}
+
+.control-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.12rem;
+  font-size: var(--rp-small);
+  position: relative;
+}
+
+/* When flipped to show service card details, remove rectangular containers for a cleaner page */
+.control-environment.flipped .control-item,
+.control-environment.flipped .service-panel .service-panel-content,
+.control-environment.flipped .service-list li {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.control-environment.flipped .service-list li {
+  padding: 0.15rem 0.25rem;
+}
+
+.control-header {
+  display: flex;
+  gap: 0.18rem;
+  align-items: center;
+}
+
+.control-icon {
+  background: rgba(228, 0, 43, 0.1);
+  padding: 0.1rem 0.2rem;
+  border-radius: 4px;
+  font-size: 0.45rem;
+  color: var(--absa-red);
+  min-width: 22px;
+  text-align: center;
+}
+
+/* Small clickable Service Card styling: blue boundary and glow on hover/focus */
+.control-item.service-card {
+  cursor: pointer;
+  user-select: none;
+  border-color: rgba(0,0,0,0.2);
+  background: linear-gradient(180deg, rgba(0,0,0,0.14), rgba(0,0,0,0.08));
+}
+.control-item.service-card:hover,
+.control-item.service-card:focus,
+.control-item.service-card.clickable:focus,
+.control-item.service-card:focus-within {
+  transform: translateY(-1px);
+  border-color: var(--status-blue);
+  box-shadow: var(--glow-blue);
+}
+
+/* Blinking action label for the service card (subtle pulse) */
+@keyframes sd-blink {
+  0% { opacity: 1; transform: translateY(0); }
+  50% { opacity: 0.45; transform: translateY(-1px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.service-card-action.blinking {
+  animation: sd-blink 1.2s ease-in-out infinite;
+  color: var(--status-blue);
+  font-weight: 600;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .service-card-action.blinking { animation: none; }
+  /* Disable the 3D flip and related transitions for users who prefer less motion */
+  .control-environment,
+  .control-items,
+  .service-panel,
+  .service-card-independent {
+    transition: none !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+}
+.control-item.service-card:active {
+  transform: translateY(0);
+}
+.control-item.service-card:focus {
+  outline: 2px solid rgba(0,184,212,0.12);
+  outline-offset: 2px;
+}
+/* small control name style */
+.control-name { color: var(--text-primary); font-weight:600; font-size: calc(var(--rp-large) * 0.98); }
+
+/* Neon blue container for the small Service Card launcher */
+.control-item.service-card {
+  border: 1px solid rgba(0,184,212,0.12);
+  background: linear-gradient(180deg, rgba(0,184,212,0.06), rgba(0,0,0,0.06));
+  box-shadow: 0 0 8px rgba(0,184,212,0.06), 0 0 18px rgba(0,184,212,0.04) inset;
+}
+
+/* Blinking neon blue for the 'Open Service Card details' status line */
+
+/* Ensure the SERVICE CARD DETAILS list is visible and high-contrast by default.
+   Scoped to service-panel to avoid affecting other elements. */
+.service-panel {
+  transform: none !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  top: auto !important;
+  padding: 0.5rem 0.18rem !important;
+}
+.service-panel .service-panel-content {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+.service-list li {
+  color: var(--text-primary) !important;
+  background: rgba(255,255,255,0.02) !important;
+}
+
+/* Make sure the service panel content has enough height to display all items */
+.service-panel .service-panel-content {
+  min-height: 200px; /* visible area for checklist */
+}
+.service-text {
+  color: var(--text-primary) !important;
+}
+
+/* Make checkmarks green in the Service Card lists */
+.service-check,
+.service-panel .service-check,
+.service-list .service-check,
+.service-card-page .service-check {
+  color: var(--status-green) !important;
+  font-weight: 700;
+  display: inline-block;
+  width: 1.2em;
+  text-align: left;
+}
+
+.control-status.blinking {
+  animation: neon-blink 1s infinite;
+  color: #aeeffd;
+}
+
+@keyframes neon-blink {
+  0% { opacity: 1; text-shadow: 0 0 6px rgba(174,239,253,0.9); }
+  50% { opacity: 0.35; text-shadow: 0 0 18px rgba(174,239,253,0.6); }
+  100% { opacity: 1; text-shadow: 0 0 6px rgba(174,239,253,0.9); }
+}
+
+.status-indicator {
+  position: absolute;
+  top: 0.18rem;
+  right: 0.18rem;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.control-item[data-status="at-target"] .status-indicator {
+  background: var(--status-green);
+  box-shadow: var(--glow-green);
+}
+
+.control-item[data-status="at-trigger"] {
+  background: rgba(255, 171, 0, 0.05);
+}
+.control-item[data-status="at-trigger"] .status-indicator {
+  background: var(--status-amber);
+  box-shadow: var(--glow-amber);
+  animation: pulse 2s infinite;
+}
+
+.control-item[data-status="at-risk"] {
+  background: rgba(228, 0, 43, 0.05);
+}
+.control-item[data-status="at-risk"] .status-indicator {
+  background: var(--status-red);
+  box-shadow: var(--glow-red);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Blinking Animation */
+.warning-blink {
+  animation: warning-pulse 1s infinite !important;
+}
+
+@keyframes warning-pulse {
+  0% { opacity: 1; filter: drop-shadow(0 0 8px currentColor); }
+  50% { opacity: 0.4; filter: drop-shadow(0 0 12px currentColor); }
+  100% { opacity: 1; filter: drop-shadow(0 0 8px currentColor); }
+}
+
+/* Footer */
+.panel-footer {
+  text-align: center;
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  padding: 0.5rem;
+  background: #000 !important;
+  border-radius: 6px;
+}
+
+/* Warning light base */
+.warning-light {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  z-index: 10;
+}
+
+/* Indicator/headlight colors handled dynamically by script using generic id selectors */
+
+.control-item[data-status="at-trigger"] .status-indicator {
+  background: var(--status-amber);
+  box-shadow: 0 0 8px var(--status-amber);
+  animation: pulse 2s infinite;
+}
+
+.control-item[data-status="at-risk"] .status-indicator {
+  background: var(--status-red);
+  box-shadow: 0 0 8px var(--status-red);
+  animation: pulse 1s infinite;
+}
+
+.update-time { display: inline-block; }
+
+.warning-blink {
+  animation: blink-indicator 1s infinite;
+}
+@keyframes blink-indicator {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+/* Styling for the temporary blank list inserted when opening the Service Card */
+.service-card-blank-list { padding: 0.25rem 0.5rem; }
+.service-card-blank-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.service-card-blank-items li {
+  font-size: 1.02rem; /* slightly larger */
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.18rem 0.12rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.service-card-blank-items li:last-child { border-bottom: none; }
+.service-card-blank-items li::before {
+  content: '\2713'; /* check mark */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(0,220,120,0.12), rgba(0,220,120,0.06));
+  color: var(--status-green);
+  font-size: 0.9rem;
+  box-shadow: 0 2px 8px rgba(0,220,120,0.08);
+}
+
+@media (max-width: 420px) {
+  .service-card-blank-items li { font-size: 0.95rem; gap: 0.45rem; }
+  .service-card-blank-items li::before { width: 18px; height: 18px; font-size: 0.82rem; }
+}
+
+/* Service panel return button: hide visually when aria-hidden=true, show when false */
+.service-panel-actions[aria-hidden="true"] { display: none !important; }
+.service-panel-actions[aria-hidden="false"] { display: flex !important; justify-content: center; padding: 0.5rem 0; }
+
+/* Prominent Return button */
+#service-return {
+  background: linear-gradient(180deg, rgba(0,184,212,0.14), rgba(0,120,160,0.12));
+  color: var(--text-primary);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: calc(var(--rp-base) * 1.02);
+  box-shadow: 0 6px 20px rgba(0,184,212,0.08), 0 2px 6px rgba(0,0,0,0.5) inset;
+  cursor: pointer;
+  transition: transform var(--anim-fast) var(--anim-ease), box-shadow var(--anim-fast) var(--anim-ease), opacity var(--anim-fast) var(--anim-ease);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.45);
+}
+#service-return:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,184,212,0.14), 0 2px 8px rgba(0,0,0,0.6) inset; }
+#service-return:active { transform: translateY(0); }
+#service-return:focus { outline: 3px solid rgba(0,184,212,0.14); outline-offset: 2px; }
+
+/* Make sure the return container sits above footer and is visually distinct */
+.service-panel-actions.service-panel-actions-bottom { margin-top: 0.35rem; }
