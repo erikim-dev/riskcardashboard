@@ -1,12 +1,12 @@
 {
   "issuesOpenValue": 227,
-  "netLossValue": "79.80 M",
-  "grossLossValue": "113.00 M",
-  "ytdRiskEvents": 202,
-  "dynamicValue285": "61.38%",
+  "netLossValue": "82.61 M",
+  "grossLossValue": "117.40 M",
+  "ytdRiskEvents": 205,
+  "dynamicValue285": "43.47%",
   "dynamicValue287": 5,
   "percentValue": 14.29,
-  "gaugeValue": 24,
+  "gaugeValue": 32,
   "alerts": [
     {
       "id": "alert-1",
@@ -45,4 +45,5 @@
   "metadata": {
     "lastUpdated": "2025-01-15T14:30:00Z"
   }
+
 }
