@@ -1,31 +1,31 @@
 {
-  "issuesOpenValue": 243,
-  "netLossValue": "82.61 M",
-  "grossLossValue": "117.40 M",
-  "ytdRiskEvents": 205,
-  "dynamicValue285": "43.47%",
-  "dynamicValue287": 5,
+  "issuesOpenValue": 229,
+  "netLossValue": "81.6 M",
+  "grossLossValue": "120.3 M",
+  "ytdRiskEvents": 221,
+  "dynamicValue285": "42.94%",
+  "dynamicValue287": 24,
   "percentValue": 14.29,
-  "gaugeValue": 32,
+  "gaugeValue": 19,
   "alerts": [
     {
       "id": "alert-1",
-      "message": "Control Weaknesses At-Risk",
-      "status": "at-risk"
+      "message": "Country Control Evironment At_Trigger",
+      "status": "at-trigger"
     }
   ],
   "controlSystems": {
     "changeManagement": "at-target",
     "controlEnvironment": "at-trigger",
-    "controlWeaknesses": "at-risk",
+    "controlWeaknesses": "at-trigger",
     "managementInfo": "at-trigger",
     "controlProcesses": "at-target",
     "bcmResilience": "at-target",
     "appetiteConsumption": "at-target",
     "PlanTesting": "yes",
-    "leftIndicator": "at-risk",
-    "rightIndicator": "at-risk",
-    "headlight": "at-risk",
+    "leftIndicator": "at-target",
+    "rightIndicator": "at-target",
+    "headlight": "at-target",
   "capacity": "at-target"
   },
   "svgElementMappings": {
@@ -47,5 +47,6 @@
   }
 
 }
+
 
 
