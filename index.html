@@ -22,8 +22,13 @@
                         <div class="local-loader">
                             <!-- Local data loading UI removed -->
                         </div>
+                    <!-- Single accessible Start button kept visible even when powered-off -->
+                    <button id="engine-start-btn" class="dashboard-start-button" aria-pressed="false" title="Start/Stop">
+                        <img src="assets/Engine Start Stop.png" alt="Start" />
+                    </button>
                 </div>
-                <!-- Gauge manual control removed in production view -->
+                </div>
+                <!-- dev controls removed -->
             </div>
 
             <div class="side-panel right-panel">
@@ -206,6 +211,6 @@
         </div>
     </div>
     <script src="script.js"></script>
-        
+    <!-- Dev speed controls removed for testing -->
 </body>
 </html>

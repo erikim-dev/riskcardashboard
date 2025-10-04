@@ -346,6 +346,14 @@
   
   <!-- embedded PNG removed per user request -->
   <!-- New RPM pointer: fresh implementation sized to match the speed pointer. -->
+  <!-- speed-pointer: lightweight pointer for the speed gauge; JS will rotate around (535.38,307.38) -->
+  <g id="speed-pointer" style="pointer-events:none;" transform="rotate(173.26 535.38 307.38)">
+    <!-- needle: starts at hub (535.38,307.38) and extends rightward; JS may update its length at runtime -->
+  <path d="M 535.38 304.88 L 535.38 309.88 L 622.00 308.28 L 622.00 306.28 Z" fill="url(#speedPointerGradient)" stroke="#0bf" stroke-width="0.6" stroke-linejoin="round"/>
+    <!-- hub outer and inner circles (match style of other pointers) -->
+    <circle cx="535.38" cy="307.38" r="7.5" fill="#fff" stroke="#0bf" stroke-width="1"/>
+    <circle cx="535.38" cy="307.38" r="3.6" fill="#0bf" stroke="#fff" stroke-width="0.6"/>
+  </g>
   <g id="rpm-pointer" style="pointer-events:none;" transform="rotate(173.43 255.58 306.63)">
     <!-- pointer body: same size/shape as speed pointer but positioned at RPM hub -->
   <path d="M 255.58 304.13 L 255.58 309.13 L 346.18 307.53 L 346.18 305.53 Z" fill="url(#speedPointerGradient)" stroke="#0bf" stroke-width="0.5" stroke-linejoin="round" />

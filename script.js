@@ -1,3 +1,7 @@
+// Remove any engine-start-overlay elements on page load to guarantee no duplicates
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.engine-start-overlay').forEach(el => el.remove());
+});
 // Single consolidated RiskDashboard controller
 class RiskDashboard {
     constructor() {
@@ -11,9 +15,9 @@ class RiskDashboard {
     this._serviceCardBackups = new WeakMap();
     // Engine start/stop state (default: off)
     this.engineActive = false;
-        // Gauge hub center (per user specification for precise rotation)
-        this.gaugeHubX = 529.32;
-        this.gaugeHubY = 301.94;
+    // Gauge hub center aligned to the artwork's round hub (kept constant)
+    this.gaugeHubX = 535.38;
+    this.gaugeHubY = 307.38;
     // RPM gauge hub (removed - RPM runtime support cleaned)
     // Fuel gauge hub (precise rotation center used by the fuel pointer)
     this.fuelHubX = 712.68;
@@ -132,6 +136,31 @@ class RiskDashboard {
             // install their preferred partial dim later.
             await this.loadData();
             await this.loadCarDashboardSVG();
+            // Note: keep any embedded `#speed-pointer` in the SVG so we can use the
+            // original artwork. (Previous test flows removed it; end that behavior.)
+            // Ensure the embedded pointer (if present) is visible and on top
+            try {
+                if (this.carDashboardSVG) {
+                    const sp = this.carDashboardSVG.querySelector('#speed-pointer');
+                    if (sp) {
+                        // Move to end of SVG so it renders on top
+                        const parent = sp.parentNode || this.carDashboardSVG;
+                        parent.appendChild(sp);
+                        // Ensure it's not hidden by style
+                        sp.style.display = '';
+                    }
+                }
+            } catch (e) { /* ignore */ }
+            // Safety: ensure CSS cannot introduce transforms on the speed pointer
+            try {
+                if (!document.getElementById('speed-pointer-safety-style')) {
+                    const st = document.createElement('style');
+                    st.id = 'speed-pointer-safety-style';
+                    // Do not override transform; only disable pointer-events and CSS transitions
+                    st.textContent = '#speed-pointer{pointer-events:none!important;transition:none!important;}';
+                    document.head.appendChild(st);
+                }
+            } catch (e) { /* ignore */ }
             // Ensure key SVG numeric labels are white (override inline fills if necessary)
             try {
                 const svg = this.carDashboardSVG;
@@ -150,6 +179,39 @@ class RiskDashboard {
             this.attachFileLoader();
             this.updateDashboard();
             this.startRealTimeUpdates();
+            // Dev sliders and controls removed from runtime to avoid redundancy.
+            // Previously there were several "speed-test" and "test-speed-slider" bindings here
+            // for interactive development. Those have been intentionally removed so the
+            // dashboard relies on `data/risk-data.json` and the single Start button.
+            // Compute gauge calibration from artwork anchors, snap pointer to zero,
+            // then load external data (but don't animate on load so the pointer
+            // remains resting at zero until interaction).
+            try { this.computeGaugeCalibrationFromRects(); } catch (e) {}
+            try { this.snapPointersToZero(); } catch (e) {}
+            // hide test UI by default (user requested resting pointer with test hidden)
+            try {
+                const dev = document.querySelector('.dev-controls'); if (dev) dev.style.display = 'none';
+            } catch (e) {}
+            try { this.loadRiskData(); } catch (e) {}
+
+            // Wire the simple Start button added to index.html (toggles engine state)
+            try {
+                const startBtn = document.getElementById('engine-start-btn');
+                if (startBtn) {
+                    const updateLabel = () => {
+                        try { startBtn.textContent = this.engineActive ? 'Stop' : 'Start'; } catch (e) {}
+                        try { startBtn.setAttribute('aria-pressed', String(!!this.engineActive)); } catch (e) {}
+                    };
+                    updateLabel();
+                    startBtn.addEventListener('click', (ev) => {
+                        ev && ev.preventDefault && ev.preventDefault();
+                        this.engineActive = !this.engineActive;
+                        updateLabel();
+                        try { this.applyPowerState(); } catch (e) {}
+                    });
+                }
+            } catch (e) { /* non-fatal */ }
+
             // Pause polling when the page is hidden to reduce CPU/timer noise, and
             // ensure the interval is cleared on unload to avoid leaks during debugging.
             try {
@@ -164,9 +226,6 @@ class RiskDashboard {
                 });
                 window.addEventListener('beforeunload', () => { try { if (this.updateInterval) clearInterval(this.updateInterval); } catch (e) {} });
             } catch (e) { /* non-fatal */ }
-
-            // Apply powered-off default state and disable hover reveals until engine is on
-            try { this._injectPoweredOffNoHoverStyle(); this.applyPowerState(); } catch (e) { /* ignore */ }
         } catch (err) {
             console.error('Initialization failed', err);
             this.data = this.getDefaultData();
@@ -708,7 +767,7 @@ class RiskDashboard {
                 [() => this.createRpmNeedleFresh(), 'createRpmNeedleFresh failed'],
                 [() => this.wireRpmTestSlider(), 'wireRpmTestSlider failed'],
                 [() => this.wireEngineStartStop(), 'wireEngineStartStop failed'],
-                [() => this.createEngineOverlay(), 'createEngineOverlay failed'],
+                // [() => this.createEngineOverlay(), 'createEngineOverlay failed'],
                 [() => this._updatePoweredOffBlocker(), 'update powered-off blocker failed'],
                 [() => this._injectPoweredOffNoHoverStyle(), 'inject powered-off stylesheet failed'],
                 [() => this._applyInlineDim(), 'apply inline dim failed'],
@@ -782,23 +841,7 @@ class RiskDashboard {
         if (!this.carDashboardSVG) return;
         const svg = this.carDashboardSVG;
         let hubX = this.gaugeHubX, hubY = this.gaugeHubY;
-        // Horizontal hub refinement: midpoint between 0 and 40 tick centers (keep Y fixed)
-        try {
-            const zeroRect = svg.querySelector('rect.cls-3[x="432.12"][y="316.26"]');
-            const maxRect = svg.querySelector('rect.cls-3[x="629.35"][y="311.73"]');
-            if (zeroRect && maxRect) {
-                const b0 = zeroRect.getBBox();
-                const b1 = maxRect.getBBox();
-                const c0x = b0.x + b0.width/2;
-                const c1x = b1.x + b1.width/2;
-                const midX = (c0x + c1x) / 2;
-                if (Math.abs(midX - hubX) > 0.2) {
-                    this.gaugeHubX = Number(midX.toFixed(2));
-                    hubX = this.gaugeHubX;
-                    console.debug('Horizontal hub shift applied', { oldHubX: this.gaugeHubX, newHubX: hubX, zeroCenterX: c0x, maxCenterX: c1x });
-                }
-            }
-        } catch (e) { console.warn('Hub X refinement failed', e); }
+    // Keep hub fixed: don't auto-refine hub X/Y to avoid visible pivot shifts
         const tickSelectors = [
             // 0
             'rect.cls-3[x="432.12"][y="316.26"]',
@@ -857,9 +900,31 @@ class RiskDashboard {
                 tickAngles.push(Math.atan2(dy, dx) * 180 / Math.PI);
             } catch (e) { tickAngles.push(null); }
         }
+        // Always compute endpoint-based dynamic mapping as a fallback
+        try {
+            const zeroRect = svg.querySelector('rect.cls-3[x="432.12"][y="316.26"]');
+            const maxRect = svg.querySelector('rect.cls-3[x="629.35"][y="311.73"]');
+            if (zeroRect && maxRect) {
+                const b0 = zeroRect.getBBox();
+                const b1 = maxRect.getBBox();
+                const c0x = b0.x + b0.width/2, c0y = b0.y + b0.height/2;
+                const c1x = b1.x + b1.width/2, c1y = b1.y + b1.height/2;
+                const a0 = Math.atan2(c0y - hubY, c0x - hubX) * 180 / Math.PI;
+                let a40 = Math.atan2(c1y - hubY, c1x - hubX) * 180 / Math.PI;
+                // unwrap a40 so it's the nearest equivalent relative to a0 (avoid crossing -180/180 seam)
+                while (a40 - a0 > 180) a40 -= 360;
+                while (a40 - a0 < -180) a40 += 360;
+                this._speedAngle0Exact = a0;
+                this._speedAngleSlope = (a40 - a0) / 40;
+            }
+        } catch (e) { /* ignore */ }
         if (tickAngles.some(a => a === null)) {
-            this.speedTickMap = null;
-            console.warn('buildSpeedTickMap: missing tick(s), falling back to default mapping');
+            // Partial tick map: store what we have and use endpoint linear fallback in valueToAngle
+            this.speedTickMap = new Map();
+            for (let i = 0; i < scaleValues.length; i++) {
+                if (tickAngles[i] !== null) this.speedTickMap.set(scaleValues[i], tickAngles[i]);
+            }
+            console.warn('buildSpeedTickMap: missing some ticks; using partial map + endpoint linear fallback');
             return;
         }
         this.speedTickMap = new Map();
@@ -1280,16 +1345,19 @@ class RiskDashboard {
     body.powered-off .control-environment,
     body.powered-off .control-item,
     body.powered-off .service-card { pointer-events: none !important; }
-    body.powered-off .car-dashboard-wrapper { filter: grayscale(0.7) brightness(0.5); }
+    /* Avoid applying filters to the wrapper so child elements can escape the dim */
+    /* body.powered-off .car-dashboard-wrapper { filter: grayscale(0.7) brightness(0.5); } */
     /* Darken the right panel as well when powered off */
     body.powered-off .right-panel { position: relative; filter: grayscale(0.8) brightness(0.35); }
     body.powered-off .right-panel::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.8); border-radius: inherit; pointer-events: none; z-index: 1; }
     /* Keep SVG interactive only for the engine button */
     body.powered-off #car-dashboard-svg svg *:not(#engine-start-stop) { pointer-events: none !important; }
-    body.powered-off #car-dashboard-svg #engine-start-stop { pointer-events: auto !important; opacity: 1 !important; filter: none !important; }
+    body.powered-off #car-dashboard-svg #engine-start-stop { pointer-events: auto !important; }
+    /* Keep the HTML engine start button visible and above the overlay */
+    body.powered-off .dashboard-start-button,
+    body.powered-off #engine-start-btn { position: relative; z-index: 5 !important; pointer-events: auto !important; cursor: pointer !important; opacity: 1 !important; filter: none !important; transform: none !important; }
     body.powered-off #car-dashboard-svg *:not(#engine-start-stop) { transition: none !important; }
     /* Ensure the HTML overlay button stays clickable and shows pointer even when off */
-    body.powered-off .engine-start-overlay { pointer-events: auto !important; cursor: pointer !important; }
     /* Neutralize hover/focus visual pops while off */
     body.powered-off .control-item:hover,
     body.powered-off .control-item:focus,
@@ -1318,87 +1386,11 @@ class RiskDashboard {
     // remains fully visible and interactive even when the embedded SVG/SVG filters are dimmed.
     // The overlay mirrors the SVG button position and size and sits above the powered-off overlay.
     createEngineOverlay() {
+        // Fully disabled: forcibly remove any overlays that may have been left in DOM
         try {
-            const host = document.querySelector('.car-dashboard-wrapper');
-            if (!host || !this.carDashboardSVG) return;
-            // Avoid duplicates
-            let overlayBtn = host.querySelector('.engine-start-overlay');
-            if (!overlayBtn) {
-                overlayBtn = document.createElement('button');
-                overlayBtn.className = 'engine-start-overlay';
-                overlayBtn.type = 'button';
-                overlayBtn.setAttribute('aria-label', 'Engine Start/Stop');
-                overlayBtn.style.position = 'absolute';
-                overlayBtn.style.zIndex = '3'; // above .powered-off-overlay (z-index:2)
-                overlayBtn.style.border = 'none';
-                overlayBtn.style.background = 'transparent';
-                overlayBtn.style.padding = '0';
-                overlayBtn.style.cursor = 'pointer';
-                overlayBtn.style.display = 'inline-grid';
-                overlayBtn.style.placeItems = 'center';
-                // inner image
-                const img = document.createElement('img');
-                img.alt = 'Engine Start Stop';
-                img.src = 'assets/Engine Start Stop.png';
-                img.style.width = '100%';
-                img.style.height = '100%';
-                img.style.pointerEvents = 'none';
-                overlayBtn.appendChild(img);
-                host.appendChild(overlayBtn);
-                // Wire events to toggle state
-                overlayBtn.addEventListener('click', () => {
-                    const svgImg = this.carDashboardSVG.getElementById('engine-start-stop');
-                    this._toggleEngineFromOverlay(overlayBtn, svgImg);
-                });
-                overlayBtn.addEventListener('keydown', (ev) => {
-                    if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
-                        ev.preventDefault();
-                        const svgImg = this.carDashboardSVG.getElementById('engine-start-stop');
-                        this._toggleEngineFromOverlay(overlayBtn, svgImg);
-                    }
-                });
-            }
-
-            // Initial aria pressed sync
-            try { overlayBtn.setAttribute('aria-pressed', String(!!this.engineActive)); } catch (e) {}
-
-            // Position the overlay to match the SVG button
-            const svgBtn = this.carDashboardSVG.getElementById('engine-start-stop');
-            if (!svgBtn) return;
-            // Position absolutely inside the dashboard wrapper so it stays anchored to the SVG
-            overlayBtn.style.position = 'absolute';
-            const hostRect = host.getBoundingClientRect();
-            const bRect = svgBtn.getBoundingClientRect();
-            const left = Math.round(bRect.left - hostRect.left);
-            const top = Math.round(bRect.top - hostRect.top);
-            const w = Math.round(bRect.width);
-            const h = Math.round(bRect.height);
-            overlayBtn.style.left = left + 'px';
-            overlayBtn.style.top = top + 'px';
-            overlayBtn.style.width = w + 'px';
-            overlayBtn.style.height = h + 'px';
-
-            // Reposition on resize
-        const reposition = () => {
-                try {
-            const hr = host.getBoundingClientRect();
-            const br = svgBtn.getBoundingClientRect();
-            overlayBtn.style.left = Math.round(br.left - hr.left) + 'px';
-            overlayBtn.style.top = Math.round(br.top - hr.top) + 'px';
-                    overlayBtn.style.width = Math.round(br.width) + 'px';
-                    overlayBtn.style.height = Math.round(br.height) + 'px';
-                } catch (e) { /* ignore */ }
-            };
-            // Store and attach a single listener
-            if (!this._engineOverlayReposition) {
-                this._engineOverlayReposition = reposition;
-                window.addEventListener('resize', this._engineOverlayReposition);
-                window.addEventListener('scroll', this._engineOverlayReposition, { passive: true });
-            } else {
-                // run once in case sizes changed
-                this._engineOverlayReposition();
-            }
-        } catch (e) { /* ignore */ }
+            document.querySelectorAll('.engine-start-overlay').forEach(el => el.remove());
+        } catch (e) {}
+        return null;
     }
 
     _toggleEngineFromOverlay(overlay, svgImg) {
@@ -1932,8 +1924,11 @@ class RiskDashboard {
         const gaugeValue = (typeof this.data?.gaugeValue !== 'undefined') ? this.data.gaugeValue : 0;
         try {
             if (!this.engineActive) {
-                // car off: point to zero
+                // car off: always force pointer to zero, even if animation is running
                 this.setGaugeToZero();
+                if (this._speedAnim && this._speedAnim.cancelled === false) {
+                    this._speedAnim.cancelled = true;
+                }
             } else {
                 // If a speed animation is currently running, avoid overriding it with an immediate set
                 if (!(this._speedAnim && this._speedAnim.cancelled === false)) {
@@ -2059,7 +2054,7 @@ class RiskDashboard {
     // Map a numeric gauge value (0..40) to rotation angle in degrees.
     valueToAngle(value) {
         const v = Math.max(0, Math.min(40, Number(value) || 0));
-        // If we have a speedTickMap, interpolate between the nearest ticks
+        // Prefer explicit tick map when available for per-tick accuracy
         if (this.speedTickMap && this.speedTickMap.size > 1) {
             const speeds = Array.from(this.speedTickMap.keys()).sort((a,b)=>a-b);
             // exact match
@@ -2072,6 +2067,10 @@ class RiskDashboard {
             const a0 = this.speedTickMap.get(low); const a1 = this.speedTickMap.get(high);
             const t = (v - low) / (high - low);
             return a0 + (a1 - a0) * t;
+        }
+        // Otherwise, use dynamic linear mapping from calibrated endpoints (0 and 40) if available
+        if (typeof this._speedAngle0Exact === 'number' && typeof this._speedAngleSlope === 'number') {
+            return this._speedAngle0Exact + this._speedAngleSlope * v;
         }
         // fallback linear mapping 0 -> -90deg, 40 -> +90deg
         return -90 + (v / 40) * 180;
@@ -2338,193 +2337,200 @@ class RiskDashboard {
         const g = this.carDashboardSVG.querySelector('#speed-pointer');
         if (g) {
             const cur = (this.data && typeof this.data.gaugeValue !== 'undefined') ? this.data.gaugeValue : 0;
+            // reapply translate then rotate
+            // store pointerDx for transform composition
+            const dx = this.pointerDx || 0;
+            try { g.setAttribute('transform', `translate(${dx} 0) rotate(0 ${this.gaugeHubX} ${this.gaugeHubY})`); } catch (e) {}
             this.updateSpeedPointer(cur);
         }
     }
 
+    // Compute gauge calibration from two anchor rects embedded in the SVG.
+    // Expects two rects (zeroRect and maxRect) with class 'cls-3' at positions
+    // provided by the user. We'll compute their centers and derive the angles
+    // relative to the pointer hub so value->angle interpolation can be linear.
+    computeGaugeCalibrationFromRects() {
+        try {
+            if (!this.carDashboardSVG) return;
+            // The artwork contains small rects near the ticks. We'll try to find
+            // two rects that look like the anchors the user specified. Use a
+            // heuristic: rects whose width/height are small and located roughly
+            // in the right half of the dashboard (speed gauge area).
+            const rects = Array.from(this.carDashboardSVG.querySelectorAll('rect'));
+            if (!rects.length) return;
+            // User-specified anchors (approximate) from request
+            const zeroApprox = { x: 432.12, y: 316.26 };
+            const maxApprox = { x: 629.35, y: 311.73 };
+            const findClosest = (pts) => {
+                let best = null; let bestD = Infinity;
+                for (const r of rects) {
+                    const rx = Number(r.getAttribute('x')) || 0;
+                    const ry = Number(r.getAttribute('y')) || 0;
+                    const rw = Number(r.getAttribute('width')) || 0;
+                    const rh = Number(r.getAttribute('height')) || 0;
+                    const cx = rx + rw / 2; const cy = ry + rh / 2;
+                    const d = Math.hypot(cx - pts.x, cy - pts.y);
+                    if (d < bestD) { bestD = d; best = {el: r, cx, cy, rw, rh}; }
+                }
+                return best;
+            };
+            const z = findClosest(zeroApprox);
+            const m = findClosest(maxApprox);
+            if (!z || !m) return;
+            // Compute angles (degrees) from hub to these centers
+            const hubX = this.gaugeHubX; const hubY = this.gaugeHubY;
+            const angleFromHub = (cx, cy) => {
+                // atan2 returns radians; convert to degrees and normalize so 0 is to the right
+                const rad = Math.atan2(cy - hubY, cx - hubX);
+                return rad * 180 / Math.PI;
+            };
+            const angle0 = angleFromHub(z.cx, z.cy);
+            const angle40 = angleFromHub(m.cx, m.cy);
+            // Store calibration: value 0 => angle0, value 40 => angle40
+            this._gaugeCal = { angle0, angle40 };
+        } catch (e) { /* ignore */ }
+    }
+
+    // Map a gauge numeric value (0..40) to an angle using calibration computed
+    // from the artwork. Falls back to linear -90..+90 if calibration missing.
+    valueToAngle(value) {
+        const v = Math.max(0, Math.min(40, Number(value) || 0));
+        if (this._gaugeCal && typeof this._gaugeCal.angle0 === 'number' && typeof this._gaugeCal.angle40 === 'number') {
+            const a0 = this._gaugeCal.angle0;
+            const a40 = this._gaugeCal.angle40;
+            const t = v / 40;
+            // We want the needle to move 'upwards' (visual y decreases) when
+            // value increases from zero. There are two angular paths between
+            // a0 and a40 (delta and delta +/- 360). Choose the one whose
+            // small-step moves the needle tip upward.
+            const rad = (deg) => deg * Math.PI / 180;
+            const hubX = this.gaugeHubX, hubY = this.gaugeHubY;
+            const yAt = (angleDeg) => Math.sin(rad(angleDeg)); // unit-radius y (relative to hub)
+            const rawDelta = a40 - a0;
+            // candidate deltas: rawDelta, rawDelta+360, rawDelta-360
+            const candidates = [rawDelta, rawDelta + 360, rawDelta - 360];
+            // evaluate which candidate produces an upward movement for a small t
+            const smallT = 0.02; // small fraction of full range
+            const baseY = yAt(a0);
+            let best = candidates[0];
+            let bestUp = null;
+            for (const d of candidates) {
+                const ang = a0 + d * smallT;
+                const y = yAt(ang);
+                const up = (y < baseY); // true if moved upward (y decreased)
+                if (bestUp === null) { bestUp = up; best = d; }
+                else if (up && !bestUp) { bestUp = up; best = d; }
+            }
+            const chosenDelta = best;
+            return a0 + chosenDelta * t;
+        }
+        // fallback
+        // fallback: prefer the visual upward movement from -90 towards +90
+        const a0 = -90, a40 = 90;
+        const rawDelta = a40 - a0;
+        const candidates = [rawDelta, rawDelta + 360, rawDelta - 360];
+        const smallT = 0.02; const rad = (deg) => deg * Math.PI / 180; const yAt = (angleDeg) => Math.sin(rad(angleDeg));
+        const baseY = yAt(a0);
+        let best = candidates[0]; let bestUp = null;
+        for (const d of candidates) {
+            const ang = a0 + d * smallT; const y = yAt(ang); const up = (y < baseY);
+            if (bestUp === null) { bestUp = up; best = d; } else if (up && !bestUp) { bestUp = up; best = d; }
+        }
+        return a0 + best * (v / 40);
+    }
+
+    // Load the external risk-data.json and set the gauge value from its `gaugeValue` property.
+    async loadRiskData() {
+        try {
+            const resp = await fetch('data/risk-data.json?t=' + Date.now());
+            if (!resp.ok) return;
+            const json = await resp.json();
+            if (json && typeof json.gaugeValue !== 'undefined') {
+                // Store the value but do NOT animate on initial load; the pointer
+                // should remain resting at zero until the system/engine is started
+                // or until the user interacts. Animation will occur on subsequent
+                // calls to setGaugeValue or when animatePointersToCurrent() is used.
+                try {
+                    if (!this.data) this.data = {};
+                    this.data.gaugeValue = Math.max(0, Math.min(40, Number(json.gaugeValue) || 0));
+                    // update any dynamic text immediately
+                    if (this.carDashboardSVG) {
+                        const gaugeText = this.carDashboardSVG.getElementById('gauge-dynamic-value');
+                        if (gaugeText) {
+                            gaugeText.textContent = this.data.gaugeValue;
+                            gaugeText.style.display = 'none';
+                        }
+                    }
+                } catch (e) {}
+            }
+        } catch (e) { /* ignore */ }
+    }
+
     // Rotate the pointer group with id 'speed-pointer' around the hub (535.38,307.38)
     updateSpeedPointer(value) {
-        if (!this.carDashboardSVG) return;
-        if (!this.carDashboardSVG.querySelector('#speed-pointer')) {
-            try { this.ensureSpeedPointer(); } catch (e) { /* ignore */ }
-        }
-        const g = this.carDashboardSVG.querySelector('#speed-pointer');
-        if (!g) return;
-        // Keep at zero while engine is off
-        if (!this.engineActive) {
-            const a0 = (this.speedTickMap && this.speedTickMap.has(0)) ? this.speedTickMap.get(0) : -90;
+        try {
+            if (!this.carDashboardSVG) return;
+            const g = this.carDashboardSVG.querySelector('#speed-pointer');
+            if (!g) return;
+            const v = Math.max(0, Math.min(40, Number(value) || 0));
+            // map using calibrated mapping (falls back to linear if missing)
+            const target = this.valueToAngle(v);
             const hubX = this.gaugeHubX, hubY = this.gaugeHubY;
-            g.setAttribute('transform', `rotate(${a0} ${hubX} ${hubY})`);
-            this._lastPointerAngle = a0; this._lastGaugeValue = 0;
-            return;
-        }
-        // Compute target angle and choose nearest equivalent to avoid wrap jumps
-        const rawTarget = this.valueToAngle(value);
-        const prevAngle = (typeof this._lastPointerAngle === 'number') ? this._lastPointerAngle : rawTarget;
-        const prevVal = (typeof this._lastGaugeValue === 'number') ? this._lastGaugeValue : value;
-        let target = rawTarget;
-        {
-            const candidates = [rawTarget, rawTarget + 360, rawTarget - 360];
-            let best = candidates[0];
-            let bestDelta = Math.abs(candidates[0] - prevAngle);
-            for (let i = 1; i < candidates.length; i++) {
-                const d = Math.abs(candidates[i] - prevAngle);
-                if (d < bestDelta) { best = candidates[i]; bestDelta = d; }
+            // Apply pointerDx translate if present by composing transforms
+            const dx = this.pointerDx || 0;
+            // If there's no previous angle, snap there immediately
+            if (typeof this._lastPointerAngle !== 'number') {
+                g.setAttribute('transform', `translate(${dx} 0) rotate(${target} ${hubX} ${hubY})`);
+                this._lastPointerAngle = target;
+                return;
             }
-            // Keep rotation direction consistent with value change
-            if (value > prevVal && best < prevAngle) best += 360;
-            if (value < prevVal && best > prevAngle) best -= 360;
-            target = best;
-        }
-        // Animate via rAF using only SVG attribute transforms
-        const hubX = this.gaugeHubX, hubY = this.gaugeHubY;
-        // cancel any running speed animation
-        if (this._speedAnim && this._speedAnim.cancelled === false) this._speedAnim.cancelled = true;
-        const anim = { cancelled: false };
-        this._speedAnim = anim;
-        const from = prevAngle;
-        const to = target;
-        const start = performance.now();
-        const dur = 400;
-        const easeOutCubic = x => 1 - Math.pow(1 - x, 3);
-        const step = (now) => {
-            if (anim.cancelled) return;
-            const t = Math.min(1, (now - start) / dur);
-            const u = easeOutCubic(t);
-            const cur = from + (to - from) * u;
-            g.setAttribute('transform', `rotate(${cur} ${hubX} ${hubY})`);
-            if (t < 1) requestAnimationFrame(step); else {
-                this._lastPointerAngle = to;
-                this._lastGaugeValue = value;
-            }
-        };
-        requestAnimationFrame(step);
-    // single speed pointer only; no secondary mirroring
+            // animate from last to target
+            const from = this._lastPointerAngle;
+            let to = target;
+            // choose shortest equivalent to avoid wrapping
+            const candidates = [to, to + 360, to - 360];
+            to = candidates.reduce((best, cur) => Math.abs(cur - from) < Math.abs(best - from) ? cur : best, candidates[0]);
+            if (this._speedAnim && this._speedAnim.cancel) this._speedAnim.cancelled = true;
+            const anim = { cancelled: false }; this._speedAnim = anim;
+            const start = performance.now(); const dur = 900;
+            const ease = x => 1 - Math.pow(1 - x, 3);
+            const step = (now) => {
+                if (anim.cancelled) return;
+                const t = Math.min(1, (now - start) / dur);
+                const u = ease(t);
+                const cur = from + (to - from) * u;
+                g.setAttribute('transform', `translate(${dx} 0) rotate(${cur} ${hubX} ${hubY})`);
+                if (t < 1) requestAnimationFrame(step); else this._lastPointerAngle = to;
+            };
+            requestAnimationFrame(step);
+        } catch (e) { /* ignore */ }
+    }
+
+    // Force-set the speed pointer angle for value (0..40) immediately, regardless of engine state or ongoing animations.
+    forceRotateSpeedPointer(value) {
+        try {
+            if (!this.carDashboardSVG) return;
+            const g = this.carDashboardSVG.querySelector('#speed-pointer');
+            if (!g) return;
+            const v = Math.max(0, Math.min(40, Number(value) || 0));
+            const target = this.valueToAngle(v);
+            const hubX = this.gaugeHubX, hubY = this.gaugeHubY;
+            const dx = this.pointerDx || 0;
+            if (this._speedAnim && this._speedAnim.cancel) this._speedAnim.cancelled = true;
+            g.setAttribute('transform', `translate(${dx} 0) rotate(${target} ${hubX} ${hubY})`);
+            this._lastPointerAngle = target;
+            this._lastGaugeValue = v;
+        } catch (e) { /* ignore */ }
     }
 
     ensureSpeedPointer() {
-        if (!this.carDashboardSVG) return;
-        const svg = this.carDashboardSVG;
-        const hubX = this.gaugeHubX, hubY = this.gaugeHubY;
-        // Dynamically compute needle length from farthest tick radius minus a margin.
-        let maxR = 0;
         try {
-            svg.querySelectorAll('rect.cls-3').forEach(r => {
-                const x = Number(r.getAttribute('x')) + (Number(r.getAttribute('width'))||0)/2;
-                const y = Number(r.getAttribute('y')) + (Number(r.getAttribute('height'))||0)/2;
-                const dx = x - hubX, dy = y - hubY;
-                const d = Math.hypot(dx, dy);
-                if (d > maxR) maxR = d;
-            });
-        } catch (e) { /* non-fatal */ }
-        if (!maxR) maxR = 120; // sensible fallback
-        const margin = 18; // keep tip inside tick arc
-        const baseLength = Math.max(60, Math.round(maxR - margin));
-    // RPM pointer visuals removed; use baseLength deterministically.
-    let length = baseLength;
-        const baseHalf = 4; // half thickness at hub
-        const tipHalf = 1;  // half thickness at tip
-
-        // Gradient definition (idempotent)
-        let defs = svg.querySelector('defs');
-        if (!defs) { defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs'); svg.insertBefore(defs, svg.firstChild); }
-        if (!svg.querySelector('#speedPointerGradient')) {
-            const lg = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-            lg.setAttribute('id', 'speedPointerGradient');
-            lg.setAttribute('x1', '0%'); lg.setAttribute('y1', '50%');
-            lg.setAttribute('x2', '100%'); lg.setAttribute('y2', '50%');
-            const mkStop = (off, color, op) => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s.setAttribute('offset', off); s.setAttribute('stop-color', color); if (op !== undefined) s.setAttribute('stop-opacity', op); return s; };
-            lg.appendChild(mkStop('0%', '#8ae2ff', 0.15));
-            lg.appendChild(mkStop('55%', '#52bbff', 0.7));
-            lg.appendChild(mkStop('100%', '#0bf', 0.95));
-            defs.appendChild(lg);
-        }
-
-        const existing = svg.querySelector('#speed-pointer');
-        const x0 = hubX, y0 = hubY, x1 = hubX + length, y1 = hubY;
-        // Forward-only needle (does not extend left of hub)
-        const pathD = [
-            'M', (x0).toFixed(2), (y0 - baseHalf + 1.5).toFixed(2),
-            'L', (x0).toFixed(2), (y0 + baseHalf - 1.5).toFixed(2),
-            'L', (x1).toFixed(2), (y1 + tipHalf).toFixed(2),
-            'L', (x1).toFixed(2), (y1 - tipHalf).toFixed(2),
-            'Z'
-        ].join(' ');
-
-        if (existing) {
-            const needle = existing.querySelector('path');
-            if (needle) needle.setAttribute('d', pathD);
-            // Update hub circle sizes if they were from old version
-            const outer = existing.querySelector('circle[r="9.2"]');
-            if (outer) { outer.setAttribute('r', '7.5'); outer.setAttribute('stroke-width', '1'); }
-            const inner = existing.querySelector('circle[r="4.2"]');
-            if (inner) { inner.setAttribute('r', '3.6'); inner.setAttribute('stroke-width', '0.6'); }
-        } else {
-            const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            group.setAttribute('id', 'speed-pointer');
-            group.setAttribute('style', 'transition:transform .45s cubic-bezier(.38,.01,.22,1); pointer-events:none;');
-            const needle = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            needle.setAttribute('d', pathD);
-            needle.setAttribute('fill', 'url(#speedPointerGradient)');
-            needle.setAttribute('stroke', '#0bf');
-            needle.setAttribute('stroke-width', '0.6');
-            needle.setAttribute('stroke-linejoin', 'round');
-            group.appendChild(needle);
-            const hubOuter = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            hubOuter.setAttribute('cx', hubX); hubOuter.setAttribute('cy', hubY); hubOuter.setAttribute('r', 7.5);
-            hubOuter.setAttribute('fill', '#fff'); hubOuter.setAttribute('stroke', '#0bf'); hubOuter.setAttribute('stroke-width', '1');
-            const hubInner = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            hubInner.setAttribute('cx', hubX); hubInner.setAttribute('cy', hubY); hubInner.setAttribute('r', 3.6);
-            hubInner.setAttribute('fill', '#0bf'); hubInner.setAttribute('stroke', '#fff'); hubInner.setAttribute('stroke-width', '0.6');
-            group.appendChild(hubOuter); group.appendChild(hubInner);
-            const firstTick = svg.querySelector('rect.cls-3');
-            if (firstTick && firstTick.parentNode) firstTick.parentNode.insertBefore(group, firstTick); else svg.appendChild(group);
-        }
-    // no secondary pointer creation - single speed pointer only
-        // Apply current gaugeValue; keep pointer at zero while engine is off
-        const initVal = (typeof this.data?.gaugeValue !== 'undefined') ? this.data.gaugeValue : 0;
-        try {
-            const g = svg.querySelector('#speed-pointer');
-            // compute calibrated zero angle
-            const a0 = (this.speedTickMap && this.speedTickMap.has(0)) ? this.speedTickMap.get(0) : -90;
-            const hubX2 = this.gaugeHubX, hubY2 = this.gaugeHubY;
-            if (g) {
-                // place pointer at zero immediately and initialize continuity
-                g.setAttribute('transform', `rotate(${a0} ${hubX2} ${hubY2})`);
-                this._lastPointerAngle = a0;
-                this._lastGaugeValue = 0;
-            }
-            // Animate to initial value only if engine is ON
-            if (this.engineActive && initVal && initVal !== 0) {
-                // cancel any running speed animation
-                if (this._speedAnim && this._speedAnim.cancelled === false) this._speedAnim.cancelled = true;
-                const anim = { cancelled: false };
-                this._speedAnim = anim;
-                const from = a0;
-                let to = this.valueToAngle(initVal);
-                // Normalize target so the sweep always moves clockwise from 'from' -> 'to'
-                // (i.e., ensure `to` is greater than `from` by adding 360° multiples)
-                while (to <= from) to += 360;
-                const start = performance.now();
-                const dur = 450;
-                const ease = x => 1 - Math.pow(1 - x, 3);
-                const step = (now) => {
-                    if (anim.cancelled) return;
-                    const t = Math.min(1, (now - start) / dur);
-                    const u = ease(t);
-                    const cur = from + (to - from) * u;
-                    if (g) g.setAttribute('transform', `rotate(${cur} ${hubX2} ${hubY2})`);
-                    if (t < 1) requestAnimationFrame(step); else {
-                        this._lastPointerAngle = to;
-                        this._lastGaugeValue = initVal;
-                    }
-                };
-                requestAnimationFrame(step);
-            } else {
-                // keep at zero until engine is turned on
-                try { if (typeof this.data?.gaugeValue !== 'undefined') this._lastGaugeValue = 0; } catch (e) {}
-            }
-        } catch (e) { /* ignore */ }
+            if (!this.carDashboardSVG) return;
+            const g = this.carDashboardSVG.querySelector('#speed-pointer');
+            if (g) return g;
+            // If the artwork doesn't include the group (unlikely), do nothing here.
+            return null;
+        } catch (e) { return null; }
     }
 
     setGaugeValue(val) {
@@ -2532,11 +2538,19 @@ class RiskDashboard {
         const num = Number(val);
         if (!Number.isFinite(num)) return;
         this.data.gaugeValue = Math.max(0, Math.min(40, num));
-        try { this.updateSpeedPointer(this.data.gaugeValue); } catch (e) { /* non-fatal */ }
-        // reflect immediately in any dynamic text node
+        // Update numeric display but keep it hidden when the engine is off
         if (this.carDashboardSVG) {
             const gaugeText = this.carDashboardSVG.getElementById('gauge-dynamic-value');
-            if (gaugeText) gaugeText.textContent = this.data.gaugeValue;
+            if (gaugeText) {
+                gaugeText.textContent = this.data.gaugeValue;
+                try {
+                    gaugeText.style.display = this.engineActive ? '' : 'none';
+                } catch (e) {}
+            }
+        }
+        // Only animate the pointer when engine is active
+        if (this.engineActive) {
+            try { this.updateSpeedPointer(this.data.gaugeValue); } catch (e) { /* non-fatal */ }
         }
     }
 
@@ -2545,7 +2559,10 @@ class RiskDashboard {
         try {
             document.body.classList.toggle('powered-off', !this.engineActive);
             const img = this.carDashboardSVG && this.carDashboardSVG.getElementById('engine-start-stop');
-            if (img) img.setAttribute('aria-pressed', String(!!this.engineActive));
+            if (img) {
+                try { img.setAttribute('aria-pressed', String(!!this.engineActive)); } catch (e) {}
+                try { img.classList.toggle('engine-active', !!this.engineActive); } catch (e) {}
+            }
             // Manage powered-off visual overlay
             const host = document.querySelector('.car-dashboard-wrapper');
             if (host) {
@@ -2572,6 +2589,39 @@ class RiskDashboard {
                 }
                 // Reflect text fields immediately on power toggle
                 try { this.updateDashboard(); } catch (e) { /* ignore */ }
+
+                // While powered-off, visually force right-panel control-items to 'at-trigger'
+                try {
+                    if (!this._originalControlStatuses) this._originalControlStatuses = new Map();
+                    const items = Array.from(document.querySelectorAll('.control-item'));
+                    if (!this.engineActive) {
+                        // Engine is off: do not change the underlying data-status values.
+                        // Instead, store original statuses and add a CSS-only class that
+                        // visually greys out the indicators.
+                        items.forEach(el => {
+                            try {
+                                const id = el.id || Symbol('no-id');
+                                if (!this._originalControlStatuses.has(id)) {
+                                    this._originalControlStatuses.set(id, el.getAttribute('data-status'));
+                                }
+                                el.classList.add('status-forced-off');
+                            } catch (e) {}
+                        });
+                    } else {
+                        // Engine is on: restore original statuses and remove the forced-off class
+                        items.forEach(el => {
+                            try {
+                                const id = el.id || Symbol('no-id');
+                                if (this._originalControlStatuses && this._originalControlStatuses.has(id)) {
+                                    const prev = this._originalControlStatuses.get(id);
+                                    if (typeof prev !== 'undefined' && prev !== null) el.setAttribute('data-status', prev);
+                                }
+                                el.classList.remove('status-forced-off');
+                            } catch (e) {}
+                        });
+                        try { if (this._originalControlStatuses) this._originalControlStatuses.clear(); } catch (e) {}
+                    }
+                } catch (e) { /* non-fatal */ }
             }
         } catch (e) { /* ignore */ }
     }
@@ -2582,9 +2632,12 @@ class RiskDashboard {
             // Speed
             if (this.carDashboardSVG) {
                 const g = this.carDashboardSVG.querySelector('#speed-pointer');
-                const a0 = (this.speedTickMap && this.speedTickMap.has(0)) ? this.speedTickMap.get(0) : -90;
+                const a0 = this.valueToAngle(0);
                 if (g) {
-                    g.setAttribute('transform', `rotate(${a0} ${this.gaugeHubX} ${this.gaugeHubY})`);
+                    // preserve any pointerDx translate when snapping to zero
+                    const dx = this.pointerDx || 0;
+                    g.setAttribute('transform', `translate(${dx} 0) rotate(${a0} ${this.gaugeHubX} ${this.gaugeHubY})`);
+                    // Reset animation continuity so next animate starts from zero
                     this._lastPointerAngle = a0;
                     this._lastGaugeValue = 0;
                 }
@@ -2609,6 +2662,7 @@ class RiskDashboard {
     animatePointersToCurrent() {
         try {
             const gv = (typeof this.data?.gaugeValue !== 'undefined') ? this.data.gaugeValue : 0;
+            try { const gaugeText = this.carDashboardSVG && this.carDashboardSVG.getElementById('gauge-dynamic-value'); if (gaugeText) gaugeText.style.display = ''; } catch (e) {}
             this.updateSpeedPointer(gv);
         } catch (e) { /* ignore */ }
         try {
@@ -2643,13 +2697,16 @@ class RiskDashboard {
     // RPM subsystem removed completely per request
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const dashboard = new RiskDashboard();
-    window.dashboard = dashboard;
-    // ensure needle visually set to zero immediately if possible
-    try { if (window.dashboard && typeof window.dashboard.setRpmToZero === 'function') window.dashboard.setRpmToZero(); } catch (e) {}
-    // Quick debug helper accessible from console: setGauge( value )
-    window.setGauge = v => dashboard.setGaugeValue(v);
-    // No RPM runtime wiring required — RPM subsystem removed per request.
-
-});
+(function boot() {
+    const start = () => {
+        const dashboard = new RiskDashboard();
+        window.dashboard = dashboard;
+        try { if (window.dashboard && typeof window.dashboard.setRpmToZero === 'function') window.dashboard.setRpmToZero(); } catch (e) {}
+        window.setGauge = v => dashboard.setGaugeValue(v);
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start, { once: true });
+    } else {
+        start();
+    }
+})();

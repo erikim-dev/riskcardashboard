@@ -406,6 +406,44 @@ text.percent-dynamic-value,
   opacity: 1;
 }
 
+/* Right-panel control-item status indicators (small circular lamp) */
+.control-item .status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(0,0,0,0.25);
+  box-shadow: none;
+}
+.control-item[data-status="at-target"] .status-indicator {
+  background: var(--status-green);
+  border-color: rgba(0,230,118,0.25);
+  box-shadow: var(--glow-green);
+}
+.control-item[data-status="at-trigger"] .status-indicator {
+  background: var(--status-amber);
+  border-color: rgba(255,171,0,0.28);
+  box-shadow: var(--glow-amber);
+}
+.control-item.status-forced-off .status-indicator {
+  /* forced-off => visually greyed-out (dim) */
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(0,0,0,0.18);
+  box-shadow: none;
+  opacity: 0.55;
+}
+.control-item[data-status="at-risk"] .status-indicator {
+  background: var(--status-red);
+  border-color: rgba(228,0,43,0.32);
+  box-shadow: var(--glow-red);
+  animation: blink-alert 1.4s infinite;
+}
+
+/* Ensure forced-off styling is visible even when body.powered-off dims other areas */
+body.powered-off .control-item.status-forced-off .status-indicator {
+  opacity: 1 !important;
+}
+
 /* SVG embedded engine start/stop image styling */
 #car-dashboard-svg svg #engine-start-stop {
   cursor: pointer;
@@ -417,6 +455,35 @@ text.percent-dynamic-value,
 #car-dashboard-svg svg #engine-start-stop.engine-active {
   filter: drop-shadow(0 0 12px rgba(0,220,120,0.95));
 }
+
+/* Never dim the SVG engine start/stop image, even when powered-off */
+body.powered-off #car-dashboard-svg svg #engine-start-stop {
+  opacity: 1 !important;
+  filter: none !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+}
+
+/* Keep the HTML start button visible and interactive when powered-off
+   The powered-off visual overlay sits at z-index:2 (injected). We give the
+   dashboard start button a positioned stacking context and a higher z-index
+   so it remains above the overlay and is not visually dimmed.
+*/
+body.powered-off .dashboard-start-button,
+body.powered-off #engine-start-btn {
+  position: relative; /* enable z-index */
+  z-index: 5 !important; /* above .powered-off-overlay (z-index:2) and the SVG image */
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+/* HTML overlay that mirrors the SVG engine image so it can remain above the
+   powered-off overlay and not be visually dimmed. Positioned absolutely within
+   .car-dashboard-wrapper and sized to match the SVG image bounding box. */
+/* no overlay; prefer to keep the original SVG and HTML start button visible */
 
 @keyframes pulse-indicator {
   0%, 100% { transform: scale(1); }
@@ -1191,3 +1258,42 @@ text.percent-dynamic-value,
 
 /* Make sure the return container sits above footer and is visually distinct */
 .service-panel-actions.service-panel-actions-bottom { margin-top: 0.35rem; }
+/* bottom fixed test slider bar */
+.bottom-test-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+}
+.bottom-test-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8px 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: #ccc;
+  font-size: 12px;
+}
+.bottom-test-inner input[type=range] {
+  flex: 1;
+}
+.bottom-test-inner label {
+  white-space: nowrap;
+}
+.bottom-test-inner span {
+  display: inline-block;
+  width: 40px;
+  text-align: right;
+}
+
+/* Keep the dashboard Start button visible and clickable while powered-off */
+body.powered-off .dashboard-start-button {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  z-index: 99999; /* ensure it's above any powered-off overlay */
+}
