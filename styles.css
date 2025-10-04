@@ -60,6 +60,10 @@ body {
   width: 100vw;
   background: #000 !important;
   overflow: hidden;
+  /* Layout tuning: allow exact viewport fitting via CSS variables */
+  --header-height: 48px; /* header thickness */
+  --right-panel-width: clamp(320px, 26vw, 440px); /* responsive right panel width */
+  --gutter: 12px;
 }
 
 .dashboard-header-thin {
@@ -82,6 +86,12 @@ body {
   gap: 0;
   overflow: hidden;
   min-height: 0;
+  align-items: stretch;
+  /* Ensure the center area and side panel exactly fill the remaining viewport height */
+  height: calc(100vh - var(--header-height));
+  /* keep horizontal padding only on the center area to avoid creating a gap on the right edge */
+  padding-left: var(--gutter);
+  padding-right: 0;
 }
 
 .center-dashboard {
@@ -92,6 +102,11 @@ body {
   position: relative;
   min-width: 0;
   min-height: 0;
+  /* Constrain center area to available width after right panel */
+  /* subtract right panel width and left gutter only so the right panel sits flush to the viewport edge */
+  max-width: calc(100vw - var(--right-panel-width) - var(--gutter));
+  margin-right: 0;
+  max-height: 100%;
 }
 
 .car-dashboard-wrapper {
@@ -105,9 +120,46 @@ body {
   border-radius: 8px;
   box-shadow: inset 0 12px 40px rgba(0,0,0,0.75), 0 8px 28px rgba(0,0,0,0.6);
   position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
   padding: 0;
   aspect-ratio: unset;
   overflow: hidden;
+}
+
+/* Right panel sizing: fixed width that doesn't cause overflow. On small screens it stacks below */
+.right-panel {
+  width: var(--right-panel-width);
+  /* make this a fixed-size flex item so it always sits at the right edge */
+  flex: 0 0 var(--right-panel-width);
+  box-sizing: border-box;
+  margin-left: 0;
+  margin-right: 0;
+  align-self: stretch; /* stretch to the parent height */
+  display: grid;
+  grid-template-rows: 1fr auto;
+  /* Make the right panel height equal to the main content height (viewport minus header) */
+  /* match the parent's computed height (main-dashboard sets height: calc(100vh - var(--header-height))) */
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  /* ensure the right panel sits flush to the right edge of the viewport */
+  position: relative;
+}
+
+/* Responsive: on small screens stack the right panel under the center and allow full width */
+@media (max-width: 860px) {
+  :root { --right-panel-width: 100%; }
+  .main-dashboard { flex-direction: column; height: auto; }
+  .center-dashboard { max-width: 100vw; height: auto; }
+  .right-panel { width: 100%; min-width: 0; height: auto; }
+}
+
+/* Small tweak for very short viewports: limit header height and make main-dashboard scroller */
+@media (max-height: 520px) {
+  :root { --header-height: 40px; }
+  .main-dashboard { height: calc(100vh - var(--header-height)); overflow: auto; }
 }
 
 /* subtle radial fade that blends the wrapper edge to the page background */
@@ -143,6 +195,20 @@ body {
 
 /* ensure wrapper content sits above the blend layer */
 .car-dashboard-wrapper > * { position: relative; z-index: 1; }
+.main-last-updated {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.18rem 0.8rem 0.18rem 1.2rem;
+  font-size: clamp(0.72rem, 0.8vw + 0.6rem, 1.08rem);
+  color: #bfbfbf;
+  background: linear-gradient(90deg, rgba(0,0,0,0.82), rgba(0,0,0,0.92));
+  border-top: 1px solid rgba(255,255,255,0.04);
+  text-align: right;
+  z-index: 3;
+  pointer-events: none;
+}
 
 /* Decorative start icon anchored inside the dashboard wrapper */
 .car-dashboard-wrapper { position: relative; }
@@ -184,6 +250,24 @@ body {
   transition-duration: var(--anim-fast);
   outline: none;
   box-shadow: none;
+}
+
+/* Partial dim overlay that leaves a transparent hole for the engine start area */
+.partial-dim-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2; /* above SVG content but below interactive overlay button */
+  pointer-events: none; /* visual-only */
+}
+
+/* Optional overlay button placed over the engine hole when an HTML button is needed */
+.engine-overlay-button {
+  border: none;
+  background: transparent;
+  position: absolute;
+  z-index: 3; /* above partial dim so clicks hit this element */
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .car-dashboard-wrapper[data-rp-base] .dashboard-start-button { transform: scale(calc(var(--rp-base, 1) / 18)); }
@@ -574,15 +658,15 @@ body.powered-off #engine-start-btn {
 }
 .right-panel .control-item { font-size: var(--rp-base); padding: 0.08rem 0.12rem; }
 .right-panel .control-header { gap: 0.08rem; }
-.right-panel .control-icon { font-size: 0.5rem; min-width: 16px; padding: 0.04rem 0.08rem; }
+.right-panel .control-icon { font-size: 0.5rem; min-width: calc(var(--rp-base) * 2.2); padding: 0.04rem 0.08rem; }
 .right-panel .control-name { font-size: calc(var(--rp-large) * 0.98); color: var(--text-primary); font-weight:600; }
 .right-panel .control-status { font-size: calc(var(--rp-small) * 0.96); color: #bfbfbf; }
 
 .right-panel .service-panel .service-panel-content { padding: 0.22rem; }
 .right-panel .service-list li { padding: 0.22rem 0.28rem; gap: 0.28rem; }
 .right-panel .service-item-label { font-size: calc(var(--rp-base) * 1.18); color: #cfcfcf; font-weight: 600; }
-.right-panel .service-item-icon { min-width: 16px; font-size: 12px; }
-.right-panel .service-item-icon svg { width: 14px; height: 14px; }
+.right-panel .service-item-icon { min-width: calc(var(--rp-base) * 2.2); font-size: calc(var(--rp-base) * 0.98); }
+.right-panel .service-item-icon svg { width: calc(var(--rp-base) * 1.6); height: calc(var(--rp-base) * 1.6); }
 
 /* Slightly reduce the scale on very small screens to prevent overflow */
 @media (max-width: 420px) {
@@ -714,6 +798,7 @@ body.powered-off #engine-start-btn {
   border-radius: 6px;
   padding: 0.18rem;
   box-shadow: var(--shadow-sm);
+  flex-grow: 1;
 }
 
 /* 3D flip: front = the list of control-items, back = the in-panel service-panel */
@@ -1296,4 +1381,25 @@ body.powered-off .dashboard-start-button {
   pointer-events: auto !important;
   opacity: 1 !important;
   z-index: 99999; /* ensure it's above any powered-off overlay */
+}
+
+/* Prevent automatic browser zooming / text size adjustments on refresh or orientation change.
+   This helps stop mobile browsers (and some desktop engines) from auto-scaling the page
+   when the viewport or content size changes. Keep these near the top so they are applied
+   before other rules. */
+html, body {
+  /* disable author/UA zooming transforms */
+  -webkit-text-size-adjust: 100%; /* iOS Safari */
+  -ms-text-size-adjust: 100%; /* IE Mobile */
+  text-size-adjust: 100%; /* Modern browsers */
+  -webkit-user-select: text; /* Safari/old WebKit */
+  -moz-user-select: text;    /* Firefox */
+  -ms-user-select: text;     /* IE10+ */
+  user-select: text;         /* Standard */
+}
+
+/* Ensure root elements do not receive unexpected transforms or zooms */
+html, body, .dashboard-container {
+  transform: none !important;
+  zoom: 1 !important; /* neutralize any zoom property if injected */
 }

@@ -2,12 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Risk Management Dashboard | ABSA</title>
+    <!-- Inline powered-off CSS to ensure the dim and no-animation rules apply before JS runs
+         This prevents flashes of undimmed content on refresh. We start the page in powered-off
+         visual state; JS will remove the class if the engine becomes active. -->
+    <style id="powered-off-inline">
+    /* Instant powered-off visuals */
+    body.powered-off * { cursor: default !important; transition: none !important; animation: none !important; }
+    body.powered-off .right-panel,
+    body.powered-off .alert-panel,
+    body.powered-off .control-environment,
+    body.powered-off .control-item,
+    body.powered-off .service-card { pointer-events: none !important; }
+    body.powered-off .right-panel { position: relative; filter: grayscale(0.8) brightness(0.35); }
+    body.powered-off .right-panel::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.8); border-radius: inherit; pointer-events: none; z-index: 1; }
+    body.powered-off #car-dashboard-svg svg *:not(#engine-start-stop) { pointer-events: none !important; }
+    body.powered-off #car-dashboard-svg #engine-start-stop { pointer-events: auto !important; }
+    body.powered-off .dashboard-start-button,
+    body.powered-off #engine-start-btn { position: relative; z-index: 5 !important; pointer-events: auto !important; cursor: pointer !important; opacity: 1 !important; filter: none !important; transform: none !important; }
+    body.powered-off #car-dashboard-svg *:not(#engine-start-stop) { transition: none !important; }
+    body.powered-off .control-item:hover,
+    body.powered-off .control-item:focus,
+    body.powered-off .service-card:hover,
+    body.powered-off .service-card:focus,
+    body.powered-off .dashboard-start-button:hover { transform: none !important; box-shadow: none !important; }
+    body.powered-off .warning-blink,
+    body.powered-off .alert-critical.blinking,
+    body.powered-off .service-card-action.blinking { animation: none !important; }
+    .powered-off-overlay { position:absolute; inset:0; z-index:2; pointer-events:none; background: radial-gradient(120% 80% at 50% 50%, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.9) 78%); }
+    </style>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="powered-off">
     <div class="dashboard-container">
         <header class="dashboard-header-thin">
             <h1>Risk Management Dashboard</h1>
@@ -17,16 +45,18 @@
             <div class="center-dashboard">
                 <div class="car-dashboard-wrapper">
                     <div id="car-dashboard-svg" aria-hidden="false">
-                                                <!-- inlined SVG to allow file:// usage and reliable id lookup -->
-                                                <!-- truncated for brevity; full SVG in assets/risk-dashboard.svg will be embedded here at build time -->
+                        <!-- inlined SVG to allow file:// usage and reliable id lookup -->
+                        <!-- truncated for brevity; full SVG in assets/risk-dashboard.svg will be embedded here at build time -->
                         <div class="local-loader">
                             <!-- Local data loading UI removed -->
                         </div>
-                    <!-- Single accessible Start button kept visible even when powered-off -->
-                    <button id="engine-start-btn" class="dashboard-start-button" aria-pressed="false" title="Start/Stop">
-                        <img src="assets/Engine Start Stop.png" alt="Start" />
-                    </button>
-                </div>
+                        <!-- Single accessible Start button kept visible even when powered-off -->
+                        <button id="engine-start-btn" class="dashboard-start-button" aria-pressed="false" title="Start/Stop">
+                            <img src="assets/Engine Start Stop.png" alt="Start" />
+                        </button>
+                    </div>
+                    <!-- Sticky Last Updated footer for main dashboard -->
+                    <div class="main-last-updated" id="main-last-updated"></div>
                 </div>
                 <!-- dev controls removed -->
             </div>

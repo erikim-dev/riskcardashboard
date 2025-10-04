@@ -1,6 +1,17 @@
-// Remove any engine-start-overlay elements on page load to guarantee no duplicates
+// Remove any legacy overlay elements on page load to guarantee no duplicates
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.engine-start-overlay').forEach(el => el.remove());
+    document.querySelectorAll('.engine-start-overlay, .engine-overlay-button, .partial-dim-overlay, .powered-off-overlay, .powered-off-start-button').forEach(el => el.remove());
+    // On load, sync main dashboard Last Updated if both elements exist
+    var lastUpdated = document.getElementById('last-updated');
+    var mainLastUpdated = document.getElementById('main-last-updated');
+    if (lastUpdated && mainLastUpdated) {
+        mainLastUpdated.textContent = lastUpdated.textContent;
+        // Observe changes to #last-updated and sync
+        var observer = new MutationObserver(function() {
+            mainLastUpdated.textContent = lastUpdated.textContent;
+        });
+        observer.observe(lastUpdated, { childList: true, subtree: true });
+    }
 });
 // Single consolidated RiskDashboard controller
 class RiskDashboard {
@@ -59,6 +70,11 @@ class RiskDashboard {
         };
 
         this.init();
+        // Ensure powered-off CSS is injected immediately, then apply power-state visuals
+        try { this._injectPoweredOffNoHoverStyle(); } catch (e) {}
+        // Apply power-state visuals immediately (synchronous) so powered-off view appears
+        // instantly on page load/refresh without waiting for async init to finish.
+        try { this.applyPowerState(); } catch (e) { /* ignore */ }
     }
 
     // Create an empty, blank service card pane matching the flipped element's size
@@ -211,6 +227,9 @@ class RiskDashboard {
                     });
                 }
             } catch (e) { /* non-fatal */ }
+
+            // Ensure the current power state visuals are applied immediately on init
+            try { this.applyPowerState(); } catch (e) { /* ignore */ }
 
             // Pause polling when the page is hidden to reduce CPU/timer noise, and
             // ensure the interval is cleared on unload to avoid leaks during debugging.
@@ -1339,7 +1358,8 @@ class RiskDashboard {
         // but keeps the engine-start-stop button visible and clickable.
         if (document.getElementById('powered-off-style')) return;
     const css = `
-    body.powered-off * { cursor: default !important; }
+    /* While powered-off, make all visual changes instant: disable transitions and animations */
+    body.powered-off * { cursor: default !important; transition: none !important; animation: none !important; }
     body.powered-off .right-panel,
     body.powered-off .alert-panel,
     body.powered-off .control-environment,
@@ -1377,6 +1397,49 @@ class RiskDashboard {
         document.head.appendChild(style);
     }
 
+    // Freeze key containers by converting them to fixed positioned elements with inline bounds
+    _freezePoweredOffContainers() {
+        try {
+            if (!this._frozenContainers) this._frozenContainers = new Map();
+            const freezeOne = (sel, zIndex) => {
+                try {
+                    const el = document.querySelector(sel);
+                    if (!el || this._frozenContainers.has(el)) return;
+                    const r = el.getBoundingClientRect();
+                    this._frozenContainers.set(el, el.getAttribute('style') || '');
+                    el.style.position = 'fixed';
+                    el.style.left = r.left + 'px';
+                    el.style.top = r.top + 'px';
+                    el.style.width = r.width + 'px';
+                    el.style.height = r.height + 'px';
+                    el.style.margin = '0';
+                    // disable transitions/animations inline to prevent any undimming animation
+                    el.style.transition = 'none';
+                    el.style.animation = 'none';
+                    el.style.pointerEvents = 'auto';
+                    if (zIndex) el.style.zIndex = zIndex;
+                } catch (e) { /* best-effort */ }
+            };
+            freezeOne('.dashboard-container', '1');
+            freezeOne('.main-dashboard', '1');
+            freezeOne('.car-dashboard-wrapper', '2');
+            freezeOne('.right-panel', '3');
+        } catch (e) { /* ignore */ }
+    }
+
+    _unfreezePoweredOffContainers() {
+        try {
+            if (!this._frozenContainers) return;
+            for (const [el, prev] of this._frozenContainers.entries()) {
+                try {
+                    if (prev) el.setAttribute('style', prev);
+                    else el.removeAttribute('style');
+                } catch (e) {}
+            }
+            this._frozenContainers.clear();
+        } catch (e) { /* ignore */ }
+    }
+
     // Apply inline styles to SVG descendants to ensure the powered-off dim is enforced
     // This uses element.style to apply !important-like behavior by setting properties directly
     // and re-applying them while powered-off. It avoids changing stylesheet files.
@@ -1391,6 +1454,120 @@ class RiskDashboard {
             document.querySelectorAll('.engine-start-overlay').forEach(el => el.remove());
         } catch (e) {}
         return null;
+    }
+
+    // Create a partial dim overlay over the dashboard wrapper that leaves the engine
+    // start area visually clear and interactive. The overlay is a positioned DIV with
+    // a CSS radial-gradient mask that creates a transparent 'hole' around the engine
+    // coordinates (in pixels relative to the wrapper). We compute the hole position
+    // from the embedded SVG engine-start-stop image bbox when possible.
+    _createPartialDimOverlay() {
+        try {
+            const host = document.querySelector('.car-dashboard-wrapper');
+            if (!host) return null;
+            // Remove existing partial overlay
+            host.querySelectorAll('.partial-dim-overlay, .engine-overlay-button').forEach(el => el.remove());
+
+            // Find SVG image bbox for engine-start-stop
+            let holeX = null, holeY = null, holeR = 36; // fallback radius
+            try {
+                const svg = this.carDashboardSVG;
+                if (svg) {
+                    const img = svg.getElementById('engine-start-stop');
+                    if (img) {
+                        const bb = img.getBBox();
+                        // Convert SVG coordinates to host pixel coordinates by using boundingClientRect of the SVG container
+                        const svgNode = document.getElementById('car-dashboard-svg');
+                        if (svgNode) {
+                            const svgRect = svgNode.getBoundingClientRect();
+                            // SVG viewBox units map to rendered SVG size; approximate using ratio
+                            const imgRect = img.getBoundingClientRect ? img.getBoundingClientRect() : null;
+                            if (imgRect) {
+                                holeX = imgRect.left + imgRect.width / 2 - host.getBoundingClientRect().left;
+                                holeY = imgRect.top + imgRect.height / 2 - host.getBoundingClientRect().top;
+                                holeR = Math.max( Math.max(imgRect.width, imgRect.height) / 2, 18 );
+                            } else {
+                                // Fallback: use SVG bbox and scale relative to container
+                                const svgBox = svg.getBBox();
+                                const svgEl = host.querySelector('svg');
+                                if (svgEl) {
+                                    const elRect = svgEl.getBoundingClientRect();
+                                    const sx = elRect.width / svgBox.width;
+                                    const sy = elRect.height / svgBox.height;
+                                    const cx = bb.x + bb.width / 2;
+                                    const cy = bb.y + bb.height / 2;
+                                    holeX = (cx - svgBox.x) * sx + elRect.left - host.getBoundingClientRect().left;
+                                    holeY = (cy - svgBox.y) * sy + elRect.top - host.getBoundingClientRect().top;
+                                    holeR = Math.max(bb.width * sx, bb.height * sy) / 2;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e) { /* best effort */ }
+
+            // If we couldn't compute exact hole coordinates, fallback to placing the hole near bottom-right area
+            const hostRect = host.getBoundingClientRect();
+            if (holeX === null || holeY === null) {
+                holeX = hostRect.width - 80;
+                holeY = hostRect.height - 80;
+                holeR = 28;
+            }
+
+            // Create overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'partial-dim-overlay';
+            overlay.setAttribute('aria-hidden', 'true');
+            overlay.style.position = 'absolute';
+            overlay.style.inset = '0';
+            overlay.style.pointerEvents = 'none';
+            overlay.style.zIndex = '2';
+            // Create a radial-gradient that is transparent in center (the hole) and dark around
+            const cx = Math.round(holeX);
+            const cy = Math.round(holeY);
+            const r = Math.round(holeR + 16); // add some comfortable padding
+            // Use background with circle at position (cx px cy px)
+            overlay.style.background = `radial-gradient(circle at ${cx}px ${cy}px, rgba(0,0,0,0) ${Math.max(r-24,6)}px, rgba(0,0,0,0.55) ${r}px, rgba(0,0,0,0.85) 100%)`;
+
+            // Add no transition so the dim appears instantly and without perceptible animation
+            overlay.style.transition = 'none';
+            overlay.style.opacity = '1';
+
+            // Append overlay to host immediately (instant/imperceptible change)
+            host.appendChild(overlay);
+            // Create an overlayed HTML engine button to ensure clickability (but only if HTML button missing)
+            try {
+                const existingBtn = document.getElementById('engine-start-btn');
+                if (!existingBtn) {
+                    const btn = document.createElement('button');
+                    btn.className = 'engine-overlay-button';
+                    btn.setAttribute('aria-label', 'Start');
+                    btn.style.position = 'absolute';
+                    btn.style.left = (cx - holeR) + 'px';
+                    btn.style.top = (cy - holeR) + 'px';
+                    btn.style.width = (holeR*2) + 'px';
+                    btn.style.height = (holeR*2) + 'px';
+                    btn.style.border = 'none';
+                    btn.style.background = 'transparent';
+                    btn.style.zIndex = '3';
+                    btn.style.cursor = 'pointer';
+                    btn.style.pointerEvents = 'auto';
+                    btn.addEventListener('click', (e) => { try { const svgImg = this.carDashboardSVG && this.carDashboardSVG.getElementById('engine-start-stop'); this._toggleEngineFromOverlay(btn, svgImg); } catch (ee) {} });
+                    host.appendChild(btn);
+                }
+            } catch (e) {}
+
+            // overlay applied instantly (no fade)
+            return overlay;
+        } catch (e) { return null; }
+    }
+
+    _removePartialDimOverlay() {
+        try {
+            const host = document.querySelector('.car-dashboard-wrapper');
+            if (!host) return;
+            host.querySelectorAll('.partial-dim-overlay, .engine-overlay-button').forEach(el => el.remove());
+        } catch (e) {}
     }
 
     _toggleEngineFromOverlay(overlay, svgImg) {
@@ -1911,10 +2088,14 @@ class RiskDashboard {
     }
 
     updateTimestamp() {
-        const now = new Date();
-        const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const date = now.toLocaleDateString([], { month: 'short', day: 'numeric' });
-        const el = document.getElementById('last-updated'); if (el) el.textContent = `${date} ${time}`;
+    const now = new Date();
+    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const date = now.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const el = document.getElementById('last-updated');
+    if (el) el.textContent = `${date} ${time}`;
+    // Sync to main dashboard footer
+    const mainLastUpdated = document.getElementById('main-last-updated');
+    if (mainLastUpdated) mainLastUpdated.textContent = el ? el.textContent : `${date} ${time}`;
     }
 
     updateDashboard() {
@@ -2566,19 +2747,25 @@ class RiskDashboard {
             // Manage powered-off visual overlay
             const host = document.querySelector('.car-dashboard-wrapper');
             if (host) {
-                let overlay = host.querySelector('.powered-off-overlay');
+                // Remove any legacy overlays that create a heavy dark background or duplicate start buttons.
+                try {
+                    host.querySelectorAll('.powered-off-overlay, .engine-start-overlay, .powered-off-start-button').forEach(el => el.remove());
+                } catch (e) {}
+
                 if (!this.engineActive) {
-                    if (!overlay) {
-                        overlay = document.createElement('div');
-                        overlay.className = 'powered-off-overlay';
-                        host.appendChild(overlay);
-                    }
                     // Snap pointers to zero when turning off
                     this.snapPointersToZero();
                     // RPM to zero
                     try { if (typeof this.setRpmToZero === 'function') this.setRpmToZero(); } catch (e) {}
-                } else if (overlay) {
-                    overlay.remove();
+                    // create a partial dim overlay that leaves the engine area clear
+                    try { this._createPartialDimOverlay(); } catch (e) {}
+                    // freeze containers to prevent layout shifts; make change instant
+                    try { this._freezePoweredOffContainers(); } catch (e) {}
+                } else {
+                    // Remove the partial dim overlay when powering on
+                    try { this._removePartialDimOverlay(); } catch (e) {}
+                    // unfreeze containers to restore normal layout
+                    try { this._unfreezePoweredOffContainers(); } catch (e) {}
                     // When turning on, animate to current data values
                     this.animatePointersToCurrent();
                     // RPM animate to current percent, if present
@@ -2590,36 +2777,30 @@ class RiskDashboard {
                 // Reflect text fields immediately on power toggle
                 try { this.updateDashboard(); } catch (e) { /* ignore */ }
 
-                // While powered-off, visually force right-panel control-items to 'at-trigger'
+                // When engine is off, set all control items to at-target and add status-forced-off
                 try {
-                    if (!this._originalControlStatuses) this._originalControlStatuses = new Map();
                     const items = Array.from(document.querySelectorAll('.control-item'));
                     if (!this.engineActive) {
-                        // Engine is off: do not change the underlying data-status values.
-                        // Instead, store original statuses and add a CSS-only class that
-                        // visually greys out the indicators.
                         items.forEach(el => {
-                            try {
-                                const id = el.id || Symbol('no-id');
-                                if (!this._originalControlStatuses.has(id)) {
-                                    this._originalControlStatuses.set(id, el.getAttribute('data-status'));
-                                }
-                                el.classList.add('status-forced-off');
-                            } catch (e) {}
+                            el.setAttribute('data-status', 'at-target');
+                            el.classList.add('status-forced-off');
                         });
                     } else {
-                        // Engine is on: restore original statuses and remove the forced-off class
-                        items.forEach(el => {
-                            try {
-                                const id = el.id || Symbol('no-id');
-                                if (this._originalControlStatuses && this._originalControlStatuses.has(id)) {
-                                    const prev = this._originalControlStatuses.get(id);
-                                    if (typeof prev !== 'undefined' && prev !== null) el.setAttribute('data-status', prev);
-                                }
+                        // When engine is on, restore actual status from data and remove status-forced-off
+                        Object.entries(this.data.controlSystems || {}).forEach(([system, rawStatus]) => {
+                            const keyNorm = String(system).trim().toLowerCase();
+                            let status = this.normalizeStatus(rawStatus);
+                            if (keyNorm === 'seatbelt' || keyNorm === 'plantesting') {
+                                const s = (rawStatus && String(rawStatus).trim().toLowerCase()) === 'no' ? 'at-risk' : 'at-target';
+                                status = s;
+                            }
+                            const mappingKey = (String(system).trim().toLowerCase() === 'plantesting') ? 'seatbelt' : system;
+                            const el = document.getElementById(this.controlItemMappings[mappingKey]);
+                            if (el) {
+                                el.setAttribute('data-status', status);
                                 el.classList.remove('status-forced-off');
-                            } catch (e) {}
+                            }
                         });
-                        try { if (this._originalControlStatuses) this._originalControlStatuses.clear(); } catch (e) {}
                     }
                 } catch (e) { /* non-fatal */ }
             }
