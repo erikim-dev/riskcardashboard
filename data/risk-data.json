@@ -21,7 +21,7 @@
     "managementInfo": "at-trigger",
     "controlProcesses": "at-target",
     "bcmResilience": "at-target",
-    "appetiteConsumption": "at-trigger",
+    "appetiteConsumption": "at-target",
     "PlanTesting": "yes",
     "leftIndicator": "at-risk",
     "rightIndicator": "at-risk",
@@ -47,3 +47,4 @@
   }
 
 }
+
