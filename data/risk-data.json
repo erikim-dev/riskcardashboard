@@ -1,23 +1,23 @@
 {
-  "issuesOpenValue": 227,
-  "netLossValue": "79.80 M",
+  "issuesOpenValue": 201,
+  "netLossValue": "81.50 M",
   "grossLossValue": "113.00 M",
   "ytdRiskEvents": 202,
-  "dynamicValue285": "61.38%",
+  "dynamicValue285": "62.69%",
   "dynamicValue287": 5,
-  "percentValue": 14.29,
+  "percentValue": 5.74,
   "gaugeValue": 24,
   "alerts": [
     {
       "id": "alert-1",
-      "message": "Control Weaknesses At-Risk",
-      "status": "at-risk"
+      "message": "Country Control Environment at-trigger",
+      "status": "at-trigger"
     }
   ],
   "controlSystems": {
     "changeManagement": "at-target",
     "controlEnvironment": "at-trigger",
-    "controlWeaknesses": "at-risk",
+    "controlWeaknesses": "at-trigger",
     "managementInfo": "at-trigger",
     "controlProcesses": "at-target",
     "bcmResilience": "at-target",
@@ -45,4 +45,5 @@
   "metadata": {
     "lastUpdated": "2025-01-15T14:30:00Z"
   }
+
 }
