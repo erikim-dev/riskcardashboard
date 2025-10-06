@@ -6,7 +6,7 @@
   "dynamicValue285": "62.69%",
   "dynamicValue287": 5,
   "percentValue": 5.74,
-  "gaugeValue": 24,
+  "gaugeValue": 19,
   "alerts": [
     {
       "id": "alert-1",
@@ -47,4 +47,5 @@
   }
 
 }
+
 
