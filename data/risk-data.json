@@ -4,7 +4,7 @@
   "grossLossValue": "113.00 M",
   "ytdRiskEvents": 202,
   "dynamicValue285": "62.69%",
-  "dynamicValue287": 5,
+  "dynamicValue287": 16,
   "percentValue": 5.74,
   "gaugeValue": 19,
   "alerts": [
@@ -47,5 +47,6 @@
   }
 
 }
+
 
 
