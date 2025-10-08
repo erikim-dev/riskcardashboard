@@ -1,12 +1,13 @@
 {
   "issuesOpenValue": 201,
   "netLossValue": "81.50 M",
-  "grossLossValue": "113.00 M",
+  "MTD Risk Events": "19",
   "ytdRiskEvents": 202,
   "dynamicValue285": "62.69%",
   "dynamicValue287": 16,
   "percentValue": 5.74,
-  "gaugeValue": 19,
+  "gaugeValue": 15,
+  "SRT": "15%",
   "alerts": [
     {
       "id": "alert-1",
@@ -41,6 +42,58 @@
     "rightIndicator": "right-indicator-warning-light",
     "headlight": "headlight-warning-light",
   "capacity": "oil-warning-light"
+  },
+  "controlDetails": {
+    "engine-control": {
+      "measurement": "Control coverage %",
+      "threshold": ">= 95%",
+      "outcome": "At trigger"
+    },
+    "esp-control": {
+      "measurement": "Change requests processed",
+      "threshold": "< 5% exceptions",
+      "outcome": "At target"
+    },
+    "temp-control": {
+      "measurement": "Issue resolution time",
+      "threshold": "<= 7 days",
+      "outcome": "At target"
+    },
+    "bulb-control": {
+      "measurement": "Data quality score",
+      "threshold": ">= 90%",
+      "outcome": "Needs improvement"
+    },
+    "abs-control": {
+      "measurement": "ABS incidents rate",
+      "threshold": "<= 2%",
+      "outcome": "At target"
+    },
+    "brake-control": {
+      "measurement": "Traction control failures",
+      "threshold": "< 1%",
+      "outcome": "At target"
+    },
+    "fuel-control": {
+      "measurement": "Appetite utilization %",
+      "threshold": "<= 80%",
+      "outcome": "Monitor"
+    },
+    "srs-control": {
+      "measurement": "BCM readiness",
+      "threshold": ">= 80%",
+      "outcome": "At target"
+    },
+    "seatbelt-control": {
+      "measurement": "Plan testing coverage",
+      "threshold": ">= 100%",
+      "outcome": "Complete"
+    },
+    "oil-control": {
+      "measurement": "Capacity ratio",
+      "threshold": ">= 1.2",
+      "outcome": "Sufficient"
+    }
   },
   "metadata": {
     "lastUpdated": "2025-01-15T14:30:00Z"

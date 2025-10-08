@@ -193,6 +193,7 @@ class RiskDashboard {
             // Inline dim application removed to allow external/alternate dim rules
             // try { this._applyInlineDim(); } catch (e) { /* ignore */ }
             this.attachFileLoader();
+            try { this.wireControlItemPopups(); } catch (e) { /* ignore */ }
             this.updateDashboard();
             this.startRealTimeUpdates();
             // Dev sliders and controls removed from runtime to avoid redundancy.
@@ -252,6 +253,108 @@ class RiskDashboard {
             // Even on failure, ensure default powered-off state is applied
             try { this._injectPoweredOffNoHoverStyle(); this.applyPowerState(); } catch (e) { /* ignore */ }
         }
+    }
+
+    // Wire click handlers for control items to show inline drill-down panels
+    wireControlItemPopups() {
+        try {
+            const data = this.data || {};
+            document.querySelectorAll('.control-item').forEach(ci => {
+                ci.classList.add('clickable');
+                // remove any existing inline detail to avoid duplicates
+                const existing = ci.querySelector('.control-inline-detail');
+                if (existing) existing.remove();
+
+                const renderDetail = () => {
+                    // toggle panel
+                    let wrapper = ci.querySelector('.control-inline-detail');
+                    if (wrapper) { wrapper.remove(); return; }
+
+                    const id = ci.id || 'control-' + (ci.dataset?.status || Math.random().toString(36).slice(2,8));
+                    const name = ci.querySelector('.control-name')?.textContent || id;
+
+                    // find record in data.controlDetails or try fallbacks
+                    const normalizedId = id.replace(/[-_\s]+/g, '').toLowerCase();
+                    const normalizedName = name.replace(/[-_\s]+/g, '').toLowerCase();
+                    let record = null;
+                    if (data.controlDetails) record = data.controlDetails[id] || data.controlDetails[normalizedId] || data.controlDetails[normalizedName] || null;
+                    if (!record && data.controls) record = data.controls[id] || data.controls[normalizedId] || data.controls[normalizedName] || null;
+                    // as last resort, synthesize minimal record from controlSystems/svgElementMappings
+                    if (!record && data.controlSystems && data.svgElementMappings) {
+                        const mapKey = Object.keys(data.svgElementMappings).find(k => {
+                            const v = String(data.svgElementMappings[k] || '').toLowerCase();
+                            return v.includes((id || '').toLowerCase()) || v.includes((normalizedName || '').toLowerCase());
+                        });
+                        if (mapKey) record = { measurement: mapKey, threshold: data.controlSystems[mapKey] || 'n/a', outcome: data.controlSystems[mapKey] || 'n/a' };
+                    }
+
+                    wrapper = document.createElement('div');
+                    wrapper.className = 'control-inline-detail';
+                    wrapper.setAttribute('role','region');
+                    wrapper.style.marginTop = '8px';
+                    wrapper.style.padding = '8px';
+                    wrapper.style.background = 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))';
+                    wrapper.style.border = '1px solid rgba(255,255,255,0.04)';
+                    wrapper.style.borderRadius = '6px';
+
+                    const grid = document.createElement('div');
+                    grid.className = 'control-inline-grid';
+                    grid.style.display = 'grid';
+                    grid.style.gridTemplateColumns = '1fr';
+                    grid.style.gap = '6px';
+
+                    const mkRow = (label, val) => {
+                        const row = document.createElement('div');
+                        row.style.display = 'flex';
+                        row.style.justifyContent = 'space-between';
+                        row.style.gap = '8px';
+                        const l = document.createElement('div'); l.style.fontWeight = '700'; l.style.color = '#e6eef5'; l.textContent = label;
+                        const v = document.createElement('div'); v.style.color = '#d0d0d0'; v.textContent = val || '—';
+                        row.appendChild(l); row.appendChild(v); return row;
+                    };
+
+                    if (record) {
+                        grid.appendChild(mkRow('Key Measurement Area', record.measurement || record.key || '—'));
+                        grid.appendChild(mkRow('Threshold', record.threshold || record.limit || '—'));
+                        grid.appendChild(mkRow('Outcome', record.outcome || record.result || record.status || '—'));
+                    } else {
+                        grid.appendChild(mkRow('Key Measurement Area', 'No data'));
+                        grid.appendChild(mkRow('Threshold', 'No data'));
+                        grid.appendChild(mkRow('Outcome', 'No data'));
+                    }
+
+                    // Optionally include a small details table if more keys exist
+                    if (record && Object.keys(record).length > 3) {
+                        const details = document.createElement('div'); details.style.marginTop = '8px';
+                        const table = document.createElement('table'); table.style.width = '100%'; table.style.borderCollapse = 'collapse';
+                        Object.entries(record).forEach(([k,v]) => {
+                            if (['measurement','threshold','outcome','key','limit','result','status'].includes(k)) return; // already shown
+                            const tr = document.createElement('tr');
+                            const td1 = document.createElement('td'); td1.style.padding = '6px 8px'; td1.style.fontWeight = '700'; td1.style.width = '40%'; td1.textContent = k;
+                            const td2 = document.createElement('td'); td2.style.padding = '6px 8px'; td2.textContent = v;
+                            tr.appendChild(td1); tr.appendChild(td2); table.appendChild(tr);
+                        });
+                        details.appendChild(table); wrapper.appendChild(details);
+                    }
+
+                    wrapper.appendChild(grid);
+
+                    // insert after the header inside the control item
+                    const header = ci.querySelector('.control-header');
+                    if (header && header.parentNode) header.parentNode.insertBefore(wrapper, header.nextSibling);
+                    else ci.appendChild(wrapper);
+                    // scroll into view slightly to reveal the panel
+                    try { wrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
+                };
+
+                ci.addEventListener('click', (ev) => {
+                    // ensure clicks on child anchors/buttons don't double-toggle
+                    if (ev.target && (ev.target.closest('a') || ev.target.closest('button'))) return;
+                    ev.preventDefault && ev.preventDefault();
+                    renderDetail();
+                });
+            });
+        } catch (e) { console.warn('wireControlItemPopups (inline) failed', e); }
     }
 
     // Make the service card clickable and keyboard-operable. Emits 'service-card-open' event.
@@ -2102,7 +2205,7 @@ class RiskDashboard {
         this.updateAlerts();
         this.updateControlSystems();
         this.updateSVGWarningLights();
-        const gaugeValue = (typeof this.data?.gaugeValue !== 'undefined') ? this.data.gaugeValue : 0;
+    const gaugeValue = (typeof this.data?.SRT !== 'undefined') ? this.data.SRT : ((typeof this.data?.gaugeValue !== 'undefined') ? this.data.gaugeValue : 0);
         try {
             if (!this.engineActive) {
                 // car off: always force pointer to zero, even if animation is running
@@ -2147,6 +2250,13 @@ class RiskDashboard {
             const ytdEvents = this.carDashboardSVG.getElementById('ytd-risk-events');
             if (ytdEvents) {
                 ytdEvents.textContent = (this.engineActive && typeof this.data?.ytdRiskEvents !== 'undefined') ? ('YTD Risk Events: ' + this.data.ytdRiskEvents) : '';
+            }
+            const mtdEvents = this.carDashboardSVG.getElementById('MTD-Risk-Events');
+            if (mtdEvents) {
+                // Accept either new camelCase key (mtdRiskEvents) or legacy key 'MTD Risk Events' from data files
+                const mtdVal = (typeof this.data?.mtdRiskEvents !== 'undefined') ? this.data.mtdRiskEvents
+                    : (typeof this.data?.['MTD Risk Events'] !== 'undefined' ? this.data['MTD Risk Events'] : undefined);
+                mtdEvents.textContent = (this.engineActive && typeof mtdVal !== 'undefined') ? ('MTD Risk Events: ' + mtdVal) : '';
             }
             const grossLoss = this.carDashboardSVG.getElementById('gross-loss-value');
             if (grossLoss) {
@@ -2566,20 +2676,20 @@ class RiskDashboard {
                 return rad * 180 / Math.PI;
             };
             const angle0 = angleFromHub(z.cx, z.cy);
-            const angle40 = angleFromHub(m.cx, m.cy);
-            // Store calibration: value 0 => angle0, value 40 => angle40
-            this._gaugeCal = { angle0, angle40 };
+            const angle100 = angleFromHub(m.cx, m.cy);
+            // Store calibration: value 0 => angle0, value 100 => angle100
+            this._gaugeCal = { angle0, angle100 };
         } catch (e) { /* ignore */ }
     }
 
-    // Map a gauge numeric value (0..40) to an angle using calibration computed
+    // Map a gauge numeric value (0..100) to an angle using calibration computed
     // from the artwork. Falls back to linear -90..+90 if calibration missing.
     valueToAngle(value) {
-        const v = Math.max(0, Math.min(40, Number(value) || 0));
-        if (this._gaugeCal && typeof this._gaugeCal.angle0 === 'number' && typeof this._gaugeCal.angle40 === 'number') {
+        const v = Math.max(0, Math.min(100, Number(value) || 0));
+        if (this._gaugeCal && typeof this._gaugeCal.angle0 === 'number' && typeof this._gaugeCal.angle100 === 'number') {
             const a0 = this._gaugeCal.angle0;
-            const a40 = this._gaugeCal.angle40;
-            const t = v / 40;
+            const a100 = this._gaugeCal.angle100;
+            const t = v / 100;
             // We want the needle to move 'upwards' (visual y decreases) when
             // value increases from zero. There are two angular paths between
             // a0 and a40 (delta and delta +/- 360). Choose the one whose
@@ -2587,7 +2697,7 @@ class RiskDashboard {
             const rad = (deg) => deg * Math.PI / 180;
             const hubX = this.gaugeHubX, hubY = this.gaugeHubY;
             const yAt = (angleDeg) => Math.sin(rad(angleDeg)); // unit-radius y (relative to hub)
-            const rawDelta = a40 - a0;
+            const rawDelta = a100 - a0;
             // candidate deltas: rawDelta, rawDelta+360, rawDelta-360
             const candidates = [rawDelta, rawDelta + 360, rawDelta - 360];
             // evaluate which candidate produces an upward movement for a small t
@@ -2607,17 +2717,17 @@ class RiskDashboard {
         }
         // fallback
         // fallback: prefer the visual upward movement from -90 towards +90
-        const a0 = -90, a40 = 90;
-        const rawDelta = a40 - a0;
+        const a0f = -90, a100f = 90;
+        const rawDelta = a100f - a0f;
         const candidates = [rawDelta, rawDelta + 360, rawDelta - 360];
         const smallT = 0.02; const rad = (deg) => deg * Math.PI / 180; const yAt = (angleDeg) => Math.sin(rad(angleDeg));
-        const baseY = yAt(a0);
+        const baseY = yAt(a0f);
         let best = candidates[0]; let bestUp = null;
         for (const d of candidates) {
-            const ang = a0 + d * smallT; const y = yAt(ang); const up = (y < baseY);
+            const ang = a0f + d * smallT; const y = yAt(ang); const up = (y < baseY);
             if (bestUp === null) { bestUp = up; best = d; } else if (up && !bestUp) { bestUp = up; best = d; }
         }
-        return a0 + best * (v / 40);
+        return a0f + best * (v / 100);
     }
 
     // Load the external risk-data.json and set the gauge value from its `gaugeValue` property.

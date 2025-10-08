@@ -1,3 +1,10 @@
+
+/* Inline detail panel shown inside control-item when drilled */
+.control-inline-detail { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.04); border-radius: 6px; padding: 8px; margin-top: 8px; }
+.control-inline-detail table td { border-top: 1px solid rgba(255,255,255,0.03); }
+.control-inline-detail strong, .control-inline-detail b { color: #e6eef5; }
+/* prevent child elements from showing click cursor; only the container is clickable */
+.control-inline-detail * { cursor: default !important; }
 :root {
   /* ABSA maroon theme */
   --absa-red: #7A001F; /* primary maroon */
@@ -36,6 +43,15 @@
   --anim-medium: 320ms;
   --anim-long: 520ms;
   --anim-ease: cubic-bezier(.22,.9,.27,1);
+}
+
+/* Ensure the whole control-item shows pointer (clickable hand) even when the page is in powered-off state
+   which sets body.powered-off * { cursor: default !important; } via inline styles. This targeted override
+   forces pointer for control items and their visible name/status so users see the clickable affordance. */
+body.powered-off .control-item.clickable,
+body.powered-off .control-item.clickable .control-name,
+body.powered-off .control-item.clickable .control-status {
+  cursor: pointer !important;
 }
 
 * {
@@ -335,10 +351,10 @@ text.percent-dynamic-value,
 }
 
 .fuel-gauge-risk { top: 25%; left: 10%; }
-.service-card { margin: 12px 8px; padding: 8px; border-radius: 8px; background: linear-gradient(90deg, rgba(0,191,255,0.08), rgba(0,191,255,0.12)); border: 1px solid rgba(0,191,255,0.18); cursor: pointer; }
-.service-card-inner { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.service-card-title { color: #dfeff6; font-weight:600; }
-.service-card-action { color: #00bfff; font-weight:700; text-align:right; }
+.service-card { margin: 6px 8px; padding: 6px; border-radius: 8px; background: linear-gradient(90deg, rgba(0,191,255,0.06), rgba(0,191,255,0.1)); border: 1px solid rgba(0,191,255,0.14); cursor: pointer; }
+.service-card-inner { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.service-card-title { color: #dfeff6; font-weight:600; font-size:0.95rem; }
+.service-card-action { color: #00bfff; font-weight:700; text-align:right; font-size:0.9rem; }
 .service-card:focus { outline: 3px solid rgba(0,191,255,0.12); outline-offset: 2px; }
 .service-card:active { transform: translateY(1px); }
 .service-card-action:focus { outline: none; }
@@ -398,6 +414,8 @@ text.percent-dynamic-value,
 .service-card-details .service-desc { color:#cfcfcf; font-size:0.92rem; margin-top:0.08rem; }
 
 /* Clean page area for user content */
+
+.control-item.clickable { cursor: pointer; }
 .clean-page .clean-container { min-height: 320px; border: 1px dashed rgba(255,255,255,0.06); padding: 16px; border-radius: 8px; background: rgba(255,255,255,0.01); }
 
 /* Modal-like overlay used when opening the service card from index.html */
@@ -661,6 +679,7 @@ body.powered-off #engine-start-btn {
 .right-panel .control-icon { font-size: 0.5rem; min-width: calc(var(--rp-base) * 2.2); padding: 0.04rem 0.08rem; }
 .right-panel .control-name { font-size: calc(var(--rp-large) * 0.98); color: var(--text-primary); font-weight:600; }
 .right-panel .control-status { font-size: calc(var(--rp-small) * 0.96); color: #bfbfbf; }
+.right-panel .control-name:hover, .right-panel .control-status:hover { text-decoration: none; cursor: pointer; }
 
 .right-panel .service-panel .service-panel-content { padding: 0.22rem; }
 .right-panel .service-list li { padding: 0.22rem 0.28rem; gap: 0.28rem; }
@@ -762,7 +781,7 @@ body.powered-off #engine-start-btn {
   background: #18191c !important;
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  padding: 0.18rem;
+  padding: 0.04rem;
   flex: 1 1 auto; /* expand to fill remaining vertical space */
   min-height: 0; /* allow flex child to shrink properly */
   height: auto;
@@ -793,13 +812,17 @@ body.powered-off #engine-start-btn {
 .control-items {
   display: flex;
   flex-direction: column;
-  gap: 0.18rem;
+  gap: 0.04rem;
   background: #000 !important;
   border-radius: 6px;
   padding: 0.18rem;
   box-shadow: var(--shadow-sm);
   flex-grow: 1;
 }
+
+/* Compact modifier used where spacing must be minimized */
+.control-environment.compact { padding: 0.02rem; border-width: 0; }
+.control-item { padding-top: 0.04rem; padding-bottom: 0.04rem; }
 
 /* 3D flip: front = the list of control-items, back = the in-panel service-panel */
 .control-environment {
