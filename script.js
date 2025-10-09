@@ -314,10 +314,16 @@ class RiskDashboard {
                     };
 
                     if (record) {
-                        // Determine label: use 'Overall Outcome' for key controls, otherwise 'Outcome'
-                        const specialOverall = ['engine-control','fuel-control'];
-                        const outcomeLabel = specialOverall.includes((ci.id || '').toString()) ? 'Overall Outcome' : 'Outcome';
-                        grid.appendChild(mkRow(outcomeLabel, record.outcome || record.result || record.status || '—'));
+                        // For Change Management (esp-control) and Control Weaknesses (temp-control)
+                        // we must never display the Outcome row
+                        if ((ci.id || '').toString() === 'esp-control' || (ci.id || '').toString() === 'temp-control' || (ci.id || '').toString() === 'bulb-control') {
+                            // intentionally skip outcome display for esp-control, temp-control and bulb-control
+                        } else {
+                            // Determine label: use 'Overall Outcome' for key controls, otherwise 'Outcome'
+                            const specialOverall = ['engine-control','fuel-control'];
+                            const outcomeLabel = specialOverall.includes((ci.id || '').toString()) ? 'Overall Outcome' : 'Outcome';
+                            grid.appendChild(mkRow(outcomeLabel, record.outcome || record.result || record.status || '—'));
+                        }
                     } else {
                         // If there's no record, show nothing (suppress placeholders)
                     }

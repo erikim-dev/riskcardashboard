@@ -54,28 +54,25 @@
     "esp-control": {
       "measurement": "Change requests processed",
       "threshold": "< 5% exceptions",
-      "outcome": "At target",
       "NAPA Overdue items Threshold": ">5 <10 - Target; >11 <20 - Trigger; >20 - Risk",
       "NAPA Overdue items Outcome": "Target (5%)",
       "Change KRIs Performance (Avg Score) Threshold": "2 - Target; 1 - Trigger; 0 - Risk",
-      "Change KRIs Performance (Avg Score) Outcome": "Target (5%)",
+      "Change KRIs Performance (Avg Score) Outcome": "Target (2)",
       "Overall Outcome": "At-Target"
     },
     "temp-control": {
       "measurement": "Issue resolution time",
       "threshold": "<= 7 days",
-      "outcome": "At target",
       "Control Weaknesses & Issues Thresholds": "Issues Overdue/Reopened/Failed IV: 0 <5 >=5; Issues/milestones at Risk: >5 <10 >10 <20 >20; No of Material Issues (Major/Critical): >5 <10 >10 <20 Critical >20; Critical/Major Open Issues <12 months: <12 months in age",
       "Control Weaknesses & Issues Values": "Issues Overdue/Reopened/Failed IV: 4 0 reopened 0 reopened >0 reopened; Issues/milestones at Risk: 24; No of Material Issues (Major/Critical): 28; DWBs Overdue: 9%",
-      "Risk Events Timelines Threshold": "=>=95% 90-94% <90%",
-      "Policy Localization Threshold": "=>=95% =>85% <85%",
-      "DWB Overdue Threshold": "<10% 10-15% >15%",
+      "Risk Events Timelines Threshold": "=>=95% - Target; 90-94% - Trigger; <90% - Risk",
+      "Policy Localization Threshold": "=>=95% - Target; =>85% - Trigger; <85% - Risk",
+      "DWB Overdue Threshold": "<10% - Target; 10-15% - Trigger; >15% - Risk",
       "Overall Outcome": "At-Trigger"
     },
     "bulb-control": {
       "measurement": "Data quality score",
       "threshold": ">= 90%",
-      "outcome": "Needs improvement",
       "Management Information Metrics": "% of KIs assessed on time: 100% >=90% <90%; Overdue status: 0% Trigger <7 days overdue >7 days overdue; Risk Types without KIs on ORMS: 0 N/A >0",
       "% of KIs assessed on time Actual": "73%",
       "Overdue (Days) Actual": "0%",
@@ -96,7 +93,13 @@
     "brake-control": {
       "measurement": "Traction control failures",
       "threshold": "< 1%",
-      "outcome": "At target"
+      "outcome": "At target",
+      "Structure Capacity Metrics": "Control Related Vacant Roles (>90 days): <=3 >3-5 >5; Overdue Mandatory Training (%): 0% <3% >3%",
+      "Vacant Roles (>90 days) Actual": "0",
+      "Vacant Roles (% of population)": "3%",
+      "Overdue Mandatory Training (Actual %)": "0.50%",
+      "Overdue Mandatory Training (Comparison %)": "1%",
+      "Risk Areas": "FinCrime, Cyber & Conduct risk"
     },
     "fuel-control": {
       "measurement": "Appetite utilization %",
@@ -111,25 +114,16 @@
       "outcome": "Target"
     },
     "srs-control": {
-      "measurement": "BCM readiness",
-      "threshold": ">= 80%",
-      "outcome": "At target"
+      "measurement": "BCM readiness",      
+      "outcome": "Satisfactory(Target)"
     },
     "seatbelt-control": {
       "measurement": "Plan testing coverage",      
-      "outcome": "Satis"
+      "outcome": "Satisfactory(Target)"
     },
     "oil-control": {
-      "measurement": "Capacity ratio",
-      "threshold": ">= 1.2",
-      "outcome": "Sufficient",
-      "Structure Capacity Metrics": "Control Related Vacant Roles (>90 days): <=3 >3-5 >5; Overdue Mandatory Training (%): 0% <3% >3%",
-      "Vacant Roles (>90 days) Actual": "0",
-      "Vacant Roles (% of population)": "3%",
-      "Overdue Mandatory Training (Actual %)": "0.50%",
-      "Overdue Mandatory Training (Comparison %)": "1%",
-      "Risk Areas": "FinCrime, Cyber & Conduct risk",
-      "Overall Outcome": "At-Target"
+      "measurement": "Capacity ratio",      
+      "outcome": "Satisfactory(Target)"
     }
   },
   "metadata": {
