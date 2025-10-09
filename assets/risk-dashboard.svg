@@ -390,7 +390,7 @@
   <text class="cls-5" id="issues-open-value" transform="translate(26.72 220.97)">Issues Open: 214</text>
   <text class="cls-5" id="net-loss-value" transform="translate(664.69 219.01)">Net Loss: 59.68 M</text>
   <text class="cls-1" id="gauge-dynamic-value" transform="translate(520.74 255.56)"><tspan x="0" y="0">30</tspan></text>
-  <text class="anchor-label" transform="translate(537.76 322.49)" text-anchor="middle">SUPER RISK TYPES</text>
+  <text class="anchor-label" transform="translate(537.76 322.49)" text-anchor="middle">SRTs NOT AT-TARGET</text>
   <text class="cls-1" id="percent-dynamic-value" transform="translate(219.68 257.91)" fill="#ffffff" font-size="14.29%">14.29%</text>
   <text class="cls-2" id="dynamic-value-285" transform="translate(708.13 285.77)">45.91%</text>
   <text class="cls-5" id="MTD-Risk-Events" transform="translate(405.01 379.75)"></text>

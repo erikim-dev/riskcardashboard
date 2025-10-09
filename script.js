@@ -314,13 +314,12 @@ class RiskDashboard {
                     };
 
                     if (record) {
-                        grid.appendChild(mkRow('Key Measurement Area', record.measurement || record.key || '—'));
-                        grid.appendChild(mkRow('Threshold', record.threshold || record.limit || '—'));
-                        grid.appendChild(mkRow('Outcome', record.outcome || record.result || record.status || '—'));
+                        // Determine label: use 'Overall Outcome' for key controls, otherwise 'Outcome'
+                        const specialOverall = ['engine-control','fuel-control'];
+                        const outcomeLabel = specialOverall.includes((ci.id || '').toString()) ? 'Overall Outcome' : 'Outcome';
+                        grid.appendChild(mkRow(outcomeLabel, record.outcome || record.result || record.status || '—'));
                     } else {
-                        grid.appendChild(mkRow('Key Measurement Area', 'No data'));
-                        grid.appendChild(mkRow('Threshold', 'No data'));
-                        grid.appendChild(mkRow('Outcome', 'No data'));
+                        // If there's no record, show nothing (suppress placeholders)
                     }
 
                     // Optionally include a small details table if more keys exist

@@ -45,29 +45,53 @@
   },
   "controlDetails": {
     "engine-control": {
-      "measurement": "Control coverage %",
-      "threshold": ">= 95%",
-      "outcome": "At trigger"
+      "outcome": "At trigger",
+      "Appetite Consumption Threshold": "KES <=130m - Target; KES >130m<=190m - Trigger; KES >190m - Risk",
+      "Appetite Consumption Outcome": "Target (81.5 M)",
+      "SRTs Threshold": "0-10% - Target; >10% <50% - Target; >=50% - Risk",
+      "SRTs Outcome": "Trigger (15%)"
     },
     "esp-control": {
       "measurement": "Change requests processed",
       "threshold": "< 5% exceptions",
-      "outcome": "At target"
+      "outcome": "At target",
+      "NAPA Overdue items Threshold": ">5 <10 - Target; >11 <20 - Trigger; >20 - Risk",
+      "NAPA Overdue items Outcome": "Target (5%)",
+      "Change KRIs Performance (Avg Score) Threshold": "2 - Target; 1 - Trigger; 0 - Risk",
+      "Change KRIs Performance (Avg Score) Outcome": "Target (5%)",
+      "Overall Outcome": "At-Target"
     },
     "temp-control": {
       "measurement": "Issue resolution time",
       "threshold": "<= 7 days",
-      "outcome": "At target"
+      "outcome": "At target",
+      "Control Weaknesses & Issues Thresholds": "Issues Overdue/Reopened/Failed IV: 0 <5 >=5; Issues/milestones at Risk: >5 <10 >10 <20 >20; No of Material Issues (Major/Critical): >5 <10 >10 <20 Critical >20; Critical/Major Open Issues <12 months: <12 months in age",
+      "Control Weaknesses & Issues Values": "Issues Overdue/Reopened/Failed IV: 4 0 reopened 0 reopened >0 reopened; Issues/milestones at Risk: 24; No of Material Issues (Major/Critical): 28; DWBs Overdue: 9%",
+      "Risk Events Timelines Threshold": "=>=95% 90-94% <90%",
+      "Policy Localization Threshold": "=>=95% =>85% <85%",
+      "DWB Overdue Threshold": "<10% 10-15% >15%",
+      "Overall Outcome": "At-Trigger"
     },
     "bulb-control": {
       "measurement": "Data quality score",
       "threshold": ">= 90%",
-      "outcome": "Needs improvement"
+      "outcome": "Needs improvement",
+      "Management Information Metrics": "% of KIs assessed on time: 100% >=90% <90%; Overdue status: 0% Trigger <7 days overdue >7 days overdue; Risk Types without KIs on ORMS: 0 N/A >0",
+      "% of KIs assessed on time Actual": "73%",
+      "Overdue (Days) Actual": "0%",
+      "Risk Types without KIs on ORMS Actual": "n/a",
+      "Overall Outcome": "At-Trigger"
     },
     "abs-control": {
       "measurement": "ABS incidents rate",
       "threshold": "<= 2%",
-      "outcome": "At target"
+      "outcome": "At target",
+      "Control Processes Metrics": "CPA Refresh (Within 12 Months): >90% 80%-90% <80% (20 CPAs); C.A. plan execution: >85% 74%-84% <74%; % UNSAT/NI Reports (YTD): <10% >10% <20% >20%",
+      "CPA Refresh Actual": "88%",
+      "CPA Refresh Notes": "20 CPAs",
+      "C.A. plan execution Actual": "88%",
+      "% UNSAT/NI Reports (YTD) Actual": "5%",
+      "Overall Outcome": "At-Target"
     },
     "brake-control": {
       "measurement": "Traction control failures",
@@ -76,8 +100,15 @@
     },
     "fuel-control": {
       "measurement": "Appetite utilization %",
-      "threshold": "<= 80%",
-      "outcome": "Monitor"
+      "threshold": "KES <=130m - Target; KES >130m<=190m - Trigger; KES >190m - Risk",
+      "outcome": "Target",
+      "Appetite Consumption Threshold": "KES <=130m - Target; KES >130m<=190m - Trigger; KES >190m - Risk",
+      "Appetite Consumption Outcome": "Target (81.5 M)"
+    },
+    "srt-metrics": {
+      "measurement": "SRTs",
+      "threshold": "0-10% - Target; >10% <50% - Target; >=50% - Risk",
+      "outcome": "Target"
     },
     "srs-control": {
       "measurement": "BCM readiness",
@@ -85,14 +116,20 @@
       "outcome": "At target"
     },
     "seatbelt-control": {
-      "measurement": "Plan testing coverage",
-      "threshold": ">= 100%",
-      "outcome": "Complete"
+      "measurement": "Plan testing coverage",      
+      "outcome": "Satis"
     },
     "oil-control": {
       "measurement": "Capacity ratio",
       "threshold": ">= 1.2",
-      "outcome": "Sufficient"
+      "outcome": "Sufficient",
+      "Structure Capacity Metrics": "Control Related Vacant Roles (>90 days): <=3 >3-5 >5; Overdue Mandatory Training (%): 0% <3% >3%",
+      "Vacant Roles (>90 days) Actual": "0",
+      "Vacant Roles (% of population)": "3%",
+      "Overdue Mandatory Training (Actual %)": "0.50%",
+      "Overdue Mandatory Training (Comparison %)": "1%",
+      "Risk Areas": "FinCrime, Cyber & Conduct risk",
+      "Overall Outcome": "At-Target"
     }
   },
   "metadata": {
