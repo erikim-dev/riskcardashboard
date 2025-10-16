@@ -14,10 +14,10 @@
 }
 
 /* Subtle custom scrollbar for modern browsers */
-.control-inline-detail { scrollbar-width: thin; scrollbar-color: var(--absa-red-light) rgba(255,255,255,0.02); }
+.control-inline-detail { scrollbar-width: thin; scrollbar-color: var(--status-blue) rgba(255,255,255,0.02); }
 .control-inline-detail::-webkit-scrollbar { width: 12px; height: 12px; }
-.control-inline-detail::-webkit-scrollbar-thumb { background: var(--absa-red-light); border-radius: 8px; border: 2px solid rgba(0,0,0,0.12); box-shadow: 0 0 6px rgba(165,18,43,0.35); }
-.control-inline-detail::-webkit-scrollbar-thumb:hover { background: var(--absa-red); box-shadow: 0 0 10px rgba(122,0,31,0.6); }
+.control-inline-detail::-webkit-scrollbar-thumb { background: var(--status-blue); border-radius: 8px; border: 2px solid rgba(0,0,0,0.12); box-shadow: var(--glow-blue); }
+.control-inline-detail::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--status-blue) 80%, #ffffff); box-shadow: 0 0 12px rgba(0,184,212,0.45); }
 .control-inline-detail::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 8px; }
 :root {
   /* ABSA maroon theme */
@@ -368,15 +368,31 @@ text.percent-dynamic-value,
 .service-card { margin: 6px 8px; padding: 6px; border-radius: 8px; background: linear-gradient(90deg, rgba(0,191,255,0.06), rgba(0,191,255,0.1)); border: 1px solid rgba(0,191,255,0.14); cursor: pointer; }
 .service-card-inner { display:flex; align-items:center; justify-content:space-between; gap:6px; }
 .service-card-title { color: #dfeff6; font-weight:600; font-size:0.95rem; }
-.service-card-action { color: #00bfff; font-weight:700; text-align:right; font-size:0.9rem; }
+.service-card-action { color: #00bfff; font-weight:700; text-align:right; font-size:0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 0 8px rgba(0,191,255,0.9); }
 .service-card:focus { outline: 3px solid rgba(0,191,255,0.12); outline-offset: 2px; }
 .service-card:active { transform: translateY(1px); }
 .service-card-action:focus { outline: none; }
 
+/* Utility class to forcibly stop the blinking animation (used when the service card is open) */
+.service-card-action.blink-stopped {
+  animation: none !important;
+  -webkit-animation: none !important;
+  -moz-animation: none !important;
+  opacity: 1 !important;
+}
+
+/* Keep the service-card-action width stable to prevent jumping when the text changes */
+.service-card-action {
+  display: inline-block;
+  min-width: 14ch; /* reserve width for the longer 'Open Service Card Status' text */
+  padding: 4px 8px;
+}
+.service-card-action.service-card-return { cursor: pointer; }
+
 /* blinking neon-blue action text */
 .service-card-action.blinking {
+  /* Blink only by toggling opacity so the text-shadow and layout remain stable */
   animation: service-neon-blink 1s infinite;
-  text-shadow: 0 0 8px rgba(0,191,255,0.9), 0 0 16px rgba(0,191,255,0.6);
 }
 @keyframes service-neon-blink {
   0% { opacity: 1; }
@@ -780,6 +796,20 @@ body.powered-off #engine-start-btn {
   border-color: var(--status-red);
 }
 
+/* Small outcome dot placed next to outcome values in inline detail panels */
+.outcome-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; vertical-align:middle; box-shadow: 0 0 6px rgba(0,0,0,0.35); }
+.overall-outcome-dot { width: 14px !important; height: 14px !important; border-radius: 50% !important; box-shadow: 0 0 10px rgba(0,0,0,0.45) !important; margin-right: 10px !important; }
+.outcome-green { background: var(--status-green); box-shadow: var(--glow-green); }
+.outcome-amber { background: var(--status-amber); box-shadow: var(--glow-amber); }
+.outcome-red { background: var(--status-red); box-shadow: var(--glow-red); }
+
+/* Right-align the Overall Outcome value and give it stronger emphasis */
+.overall-outcome-value {
+  text-align: right !important;
+  font-weight: 800;
+  color: #ffffff !important;
+}
+
 .alert-item.blinking {
   animation: blink-alert 1.2s infinite;
 }
@@ -1105,6 +1135,20 @@ body.powered-off #engine-start-btn {
   position: relative;
 }
 
+/* When a control is opened, enlarge its main status indicator */
+.control-item.control-open .status-indicator,
+.control-item.control-open .status-light {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+}
+
+/* Make the opened inline panel have a fully black background to match request */
+.control-inline-detail {
+  background: #000 !important;
+  border-color: rgba(255,255,255,0.04) !important;
+}
+
 /* When flipped to show service card details, remove rectangular containers for a cleaner page */
 .control-environment.flipped .control-item,
 .control-environment.flipped .service-panel .service-panel-content,
@@ -1152,9 +1196,9 @@ body.powered-off #engine-start-btn {
 
 /* Blinking action label for the service card (subtle pulse) */
 @keyframes sd-blink {
-  0% { opacity: 1; transform: translateY(0); }
-  50% { opacity: 0.45; transform: translateY(-1px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% { opacity: 1; }
+  50% { opacity: 0.45; }
+  100% { opacity: 1; }
 }
 
 .service-card-action.blinking {

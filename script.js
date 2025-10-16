@@ -1,16 +1,49 @@
 // Remove any legacy overlay elements on page load to guarantee no duplicates
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.engine-start-overlay, .engine-overlay-button, .partial-dim-overlay, .powered-off-overlay, .powered-off-start-button').forEach(el => el.remove());
-    // On load, sync main dashboard Last Updated if both elements exist
+    // On load, ensure the small '#last-updated' element remains available for data-driven updates
+    // and start a separate live clock for the dashboard footer '#main-last-updated'.
     var lastUpdated = document.getElementById('last-updated');
     var mainLastUpdated = document.getElementById('main-last-updated');
-    if (lastUpdated && mainLastUpdated) {
-        mainLastUpdated.textContent = lastUpdated.textContent;
-        // Observe changes to #last-updated and sync
-        var observer = new MutationObserver(function() {
-            mainLastUpdated.textContent = lastUpdated.textContent;
-        });
-        observer.observe(lastUpdated, { childList: true, subtree: true });
+
+    // Start a lightweight live ISO 8601 clock for the main dashboard footer.
+    // This shows the current time (ISO 8601, UTC, without milliseconds) and updates every 30s.
+    if (mainLastUpdated) {
+        const tickMainClock = () => {
+            // Use Intl.DateTimeFormat to get accurate Kenya time (Africa/Nairobi)
+            // Format parts and build YYYY-MM-DD HH:MM
+            try {
+                const fmt = new Intl.DateTimeFormat('en-GB', {
+                    timeZone: 'Africa/Nairobi',
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', hour12: false
+                });
+                const parts = fmt.formatToParts(new Date());
+                const map = {};
+                parts.forEach(p => { if (p.type && p.value) map[p.type] = p.value; });
+                const Y = map.year || new Date().getFullYear();
+                const M = map.month || '01';
+                const D = map.day || '01';
+                const h = map.hour || '00';
+                const m = map.minute || '00';
+                mainLastUpdated.textContent = `${Y}-${M}-${D} ${h}:${m}`;
+            } catch (e) {
+                // Fallback to manual UTC+3 calculation if Intl is not available
+                const now = new Date();
+                const kenyaOffsetMinutes = 3 * 60;
+                const kenya = new Date(now.getTime() + (kenyaOffsetMinutes + now.getTimezoneOffset()) * 60000);
+                const pad = (n) => String(n).padStart(2, '0');
+                const Y = kenya.getUTCFullYear();
+                const M = pad(kenya.getUTCMonth() + 1);
+                const D = pad(kenya.getUTCDate());
+                const h = pad(kenya.getUTCHours());
+                const m = pad(kenya.getUTCMinutes());
+                mainLastUpdated.textContent = `${Y}-${M}-${D} ${h}:${m}`;
+            }
+        };
+        tickMainClock();
+        // Refresh every 30 seconds
+        setInterval(tickMainClock, 30 * 1000);
     }
 
     // Login overlay removed: no interactive sign-in required for this build
@@ -197,7 +230,8 @@ class RiskDashboard {
             this.attachFileLoader();
             try { this.wireControlItemPopups(); } catch (e) { /* ignore */ }
             this.updateDashboard();
-            this.startRealTimeUpdates();
+            // Start a dedicated data watcher that polls the JSON and updates the UI when it changes
+            this.startDataWatcher();
             // Dev sliders and controls removed from runtime to avoid redundancy.
             // Previously there were several "speed-test" and "test-speed-slider" bindings here
             // for interactive development. Those have been intentionally removed so the
@@ -305,32 +339,54 @@ class RiskDashboard {
                     grid.style.gridTemplateColumns = '1fr';
                     grid.style.gap = '6px';
 
-                    const mkRow = (label, val) => {
+                    const mkRow = (label, val, isOutcome=false) => {
                         const row = document.createElement('div');
                         row.style.display = 'flex';
-                        row.style.justifyContent = 'space-between';
+                        row.style.width = '100%';
+                        row.style.alignItems = 'center';
                         row.style.gap = '8px';
-                        const l = document.createElement('div'); l.style.fontWeight = '700'; l.style.color = '#e6eef5'; l.textContent = label;
-                        const v = document.createElement('div'); v.style.color = '#d0d0d0'; v.textContent = val || '—';
+                        const l = document.createElement('div');
+                        l.style.fontWeight = '700';
+                        l.style.color = '#e6eef5';
+                        l.style.flex = '1 1 auto';
+                        l.textContent = label;
+                        const v = document.createElement('div');
+                        v.style.color = '#d0d0d0';
+                        v.style.flex = '0 0 auto';
+                        v.style.minWidth = '6ch';
+                        v.style.textAlign = 'right';
+                        v.textContent = val || '—';
+                        if (isOutcome) {
+                            const norm = String(val || '').toLowerCase();
+                            let cls = 'outcome-green';
+                            if (norm.includes('risk') || norm.includes('red')) cls = 'outcome-red';
+                            else if (norm.includes('trigger') || norm.includes('amber') || norm.includes('warn')) cls = 'outcome-amber';
+                            const dot = document.createElement('span'); dot.className = `outcome-dot ${cls}`;
+                            // If this row is the Overall Outcome, tag the dot so we can style it larger
+                            try { if (/overall\s*outcome/i.test(String(label || ''))) dot.classList.add('overall-outcome-dot'); } catch (e) {}
+                            v.insertBefore(dot, v.firstChild);
+                        }
                         row.appendChild(l); row.appendChild(v); return row;
                     };
 
                     // No special-case here: let the default record/table rendering handle control details.
                     let handledSpecial = false; // kept for compatibility with older logic; remains false
 
+                    // Build an Overall Outcome row but don't append it yet; we'll append it last so it appears as the final line
+                    let overallRow = null;
+                    let overallValueForIndicator = null;
                     if (record) {
-                        // For Change Management (esp-control), Control Weaknesses (temp-control) and bulb-control
-                        // we intentionally do not show the outcome row. Control Processes (abs-control) SHOULD show it.
-                        if ((ci.id || '').toString() === 'temp-control' || (ci.id || '').toString() === 'bulb-control') {
-                            // intentionally skip outcome display for these controls
-                        } else {
-                            // Determine label: use 'Overall Outcome' for key controls (including abs-control), otherwise 'Outcome'
-                            const specialOverall = ['engine-control','fuel-control','abs-control','bulb-control','esp-control'];
-                            const outcomeLabel = specialOverall.includes((ci.id || '').toString()) ? 'Overall Outcome' : 'Outcome';
-                            grid.appendChild(mkRow(outcomeLabel, record.outcome || record.result || record.status || '—'));
-                        }
-                    } else {
-                        // If there's no record, show nothing (suppress placeholders)
+                        const overallValue = (function() {
+                            if (typeof record['Overall Outcome'] !== 'undefined') return record['Overall Outcome'];
+                            if (typeof record['overall outcome'] !== 'undefined') return record['overall outcome'];
+                            if (typeof record.overallOutcome !== 'undefined') return record.overallOutcome;
+                            if (typeof record.outcome !== 'undefined') return record.outcome;
+                            if (typeof record.result !== 'undefined') return record.result;
+                            if (typeof record.status !== 'undefined') return record.status;
+                            return '—';
+                        })();
+                        overallValueForIndicator = overallValue;
+                        overallRow = mkRow('Overall Outcome', overallValue, true);
                     }
 
                     // Optionally include a small details table if more keys exist
@@ -338,13 +394,34 @@ class RiskDashboard {
                         const details = document.createElement('div'); details.style.marginTop = '8px';
                         const table = document.createElement('table'); table.style.width = '100%'; table.style.borderCollapse = 'collapse';
                         Object.entries(record).forEach(([k,v]) => {
-                            if (['measurement','threshold','outcome','key','limit','result','status'].includes(k)) return; // already shown
+                            const kn = String(k || '').trim().toLowerCase();
+                            // skip keys already shown above and any 'overall outcome' variants
+                            if (['measurement','threshold','outcome','key','limit','result','status'].includes(kn)) return; // already shown
+                            if (kn.replace(/\s+/g,'') === 'overalloutcome') return; // avoid duplicate Overall Outcome
                             const tr = document.createElement('tr');
                             const td1 = document.createElement('td'); td1.style.padding = '6px 8px'; td1.style.fontWeight = '700'; td1.style.width = '40%'; td1.textContent = k;
-                            const td2 = document.createElement('td'); td2.style.padding = '6px 8px'; td2.textContent = v;
+                            const td2 = document.createElement('td'); td2.style.padding = '6px 8px';
+                            // If the key indicates an outcome, prepend a small dot
+                            const isOutcomeCell = /outcome$/i.test(String(k || '')) || /outcome/i.test(String(v || ''));
+                            if (isOutcomeCell) {
+                                const norm = String(v || '').toLowerCase();
+                                let cls = 'outcome-green';
+                                if (norm.includes('risk') || norm.includes('red')) cls = 'outcome-red';
+                                else if (norm.includes('trigger') || norm.includes('amber') || norm.includes('warn')) cls = 'outcome-amber';
+                                const dot = document.createElement('span'); dot.className = `outcome-dot ${cls}`;
+                                td2.appendChild(dot);
+                            }
+                            td2.appendChild(document.createTextNode(String(v)));
                             tr.appendChild(td1); tr.appendChild(td2); table.appendChild(tr);
                         });
                         details.appendChild(table); wrapper.appendChild(details);
+                        // append Overall Outcome as the final row if present
+                        if (overallRow) grid.appendChild(overallRow);
+                    }
+
+                    // If there were no detail rows, append the Overall Outcome here so it is still last
+                    if (!record || Object.keys(record).length <= 3) {
+                        if (overallRow) grid.appendChild(overallRow);
                     }
 
                     wrapper.appendChild(grid);
@@ -361,6 +438,46 @@ class RiskDashboard {
                     // ensure clicks on child anchors/buttons don't double-toggle
                     if (ev.target && (ev.target.closest('a') || ev.target.closest('button'))) return;
                     ev.preventDefault && ev.preventDefault();
+                    // Before toggling, check whether the panel is already open
+                    const existing = ci.querySelector('.control-inline-detail');
+                    if (existing) {
+                        // closing: restore indicator size / status
+                        try {
+                            ci.classList.remove('control-open');
+                            const ind = ci.querySelector('.status-indicator');
+                            if (ind) {
+                                ind.style.width = '';
+                                ind.style.height = '';
+                                ind.style.boxShadow = '';
+                                // restore data-status from data attribute if present
+                                const orig = ci.getAttribute('data-status-original');
+                                if (orig) ci.setAttribute('data-status', orig);
+                            }
+                        } catch (e) {}
+                        renderDetail();
+                        return;
+                    }
+
+                    // opening: enlarge indicator and set it to Overall Outcome
+                    try {
+                        // store original status if not already stored
+                        if (!ci.getAttribute('data-status-original')) ci.setAttribute('data-status-original', ci.getAttribute('data-status') || '');
+                        ci.classList.add('control-open');
+                        const ind = ci.querySelector('.status-indicator');
+                        if (ind) {
+                            ind.style.width = '18px';
+                            ind.style.height = '18px';
+                            ind.style.boxShadow = 'var(--glow-blue)';
+                            // map overallValueForIndicator to simplified data-status tag
+                            if (overallValueForIndicator) {
+                                const v = String(overallValueForIndicator).toLowerCase();
+                                if (v.includes('risk') || v.includes('red')) ci.setAttribute('data-status', 'at-risk');
+                                else if (v.includes('trigger') || v.includes('amber')) ci.setAttribute('data-status', 'at-trigger');
+                                else ci.setAttribute('data-status', 'at-target');
+                            }
+                        }
+                    } catch (e) { console.warn('Failed to enlarge indicator', e); }
+
                     renderDetail();
                 });
             });
@@ -378,11 +495,36 @@ class RiskDashboard {
             // Remove any previously created modal overlay so the large window is not visible
             try { const existingOverlay = document.querySelector('.service-modal-overlay'); if (existingOverlay) existingOverlay.remove(); } catch (e) { /* ignore */ }
 
-            // Start with blinking state so the 'Open Service Card Status' draws attention
+            // Do not auto-add blinking at startup; keep the action label visually steady by default.
+
+            // Ensure the action label never causes layout jumps by measuring the widest label
             try {
-                const initialAction = el.querySelector('.service-card-action');
-                if (initialAction && !initialAction.classList.contains('blinking')) initialAction.classList.add('blinking');
-            } catch (e) { /* ignore */ }
+                const actionEl = el.querySelector('.service-card-action');
+                if (actionEl) {
+                    const measureTextWidth = (text, refEl) => {
+                        const span = document.createElement('span');
+                        span.style.visibility = 'hidden';
+                        span.style.position = 'absolute';
+                        span.style.whiteSpace = 'nowrap';
+                        try {
+                            const cs = window.getComputedStyle(refEl);
+                            span.style.fontFamily = cs.fontFamily;
+                            span.style.fontSize = cs.fontSize;
+                            span.style.fontWeight = cs.fontWeight;
+                            span.style.letterSpacing = cs.letterSpacing;
+                        } catch (e) {}
+                        span.textContent = text;
+                        document.body.appendChild(span);
+                        const w = span.offsetWidth;
+                        span.remove();
+                        return w;
+                    };
+                    const w1 = measureTextWidth('Open Service Card Status', actionEl);
+                    const w2 = measureTextWidth('Return to Main', actionEl);
+                    const desired = Math.max(w1, w2) + 12; // padding buffer
+                    actionEl.style.minWidth = desired + 'px';
+                }
+            } catch (e) { /* non-fatal measurement */ }
 
             const toggleServicePanel = (ev) => {
                 if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
@@ -406,45 +548,35 @@ class RiskDashboard {
                     h.textContent = isFlipped ? 'SERVICE CARD DETAILS' : (ce.dataset._originalTitle || 'Control Environment Status');
                 }
 
-                // Replace the action label with a return button when flipped; restore when unflipped.
+                // Replace the action label in-place when flipped so the element's position and size remain stable.
                 try {
                     const actionEl = el.querySelector('.service-card-action');
-                    if (isFlipped) {
-                        // create a focused, accessible return button
-                        const btn = document.createElement('button');
-                        btn.type = 'button';
-                        btn.className = 'service-card-action service-card-return';
-                        btn.textContent = 'Return to Main';
-                        btn.setAttribute('aria-label', 'Return to Main');
-                        // copy computed sizing from the original action element so the button matches visually
-                        try {
-                            if (actionEl) {
-                                const cs = window.getComputedStyle(actionEl);
-                                if (cs.fontSize) btn.style.fontSize = cs.fontSize;
-                                if (cs.paddingTop && cs.paddingRight) btn.style.padding = `${cs.paddingTop} ${cs.paddingRight}`;
-                                if (cs.lineHeight) btn.style.lineHeight = cs.lineHeight;
-                                if (cs.minWidth) btn.style.minWidth = cs.minWidth;
-                            }
-                        } catch (e) {}
-                        // Clicking the button should unflip (use stopPropagation to avoid double toggles)
-                        btn.addEventListener('click', (e) => { e.stopPropagation(); toggleServicePanel(e); });
-                        // Replace existing element (if present) or append
-                        if (actionEl && actionEl.parentNode) actionEl.parentNode.replaceChild(btn, actionEl);
-                        else el.querySelector('.service-card-inner')?.appendChild(btn);
-                        try { btn.focus(); } catch (e) {}
-                    } else {
-                        // restore the original label text element (non-blinking)
-                        const div = document.createElement('div');
-                        div.className = 'service-card-action';
-                        div.textContent = 'Open Service Card Status';
-                        div.setAttribute('role', 'presentation');
-            if (actionEl && actionEl.parentNode) actionEl.parentNode.replaceChild(div, actionEl);
-                        else el.querySelector('.service-card-inner')?.appendChild(div);
+                    if (actionEl) {
+                        if (isFlipped) {
+                            // Turn the existing label into a return control (no DOM replacement to avoid layout jump)
+                            actionEl.classList.add('service-card-return');
+                            actionEl.textContent = 'Return to Main';
+                            actionEl.setAttribute('role', 'button');
+                            actionEl.setAttribute('aria-label', 'Return to Main');
+                            actionEl.onclick = (e) => { e && e.stopPropagation && e.stopPropagation(); toggleServicePanel(e); };
+                            // Stop blinking visually by adding the blink-stopped utility class and remove blinking class permanently
+                            try { actionEl.classList.add('blink-stopped'); actionEl.classList.remove('blinking'); } catch (e) {}
+                            try { actionEl.focus(); } catch (e) {}
+                        } else {
+                            // restore original label text and semantics
+                            actionEl.classList.remove('service-card-return');
+                            actionEl.textContent = 'Open Service Card Status';
+                            actionEl.setAttribute('role', 'presentation');
+                            actionEl.removeAttribute('aria-label');
+                            // Remove both blink-stopped and blinking so it stays steady
+                            try { actionEl.classList.remove('blink-stopped'); actionEl.classList.remove('blinking'); } catch (e) {}
+                            actionEl.onclick = null;
+                        }
                     }
                 } catch (e) { /* ignore */ }
 
-        // When opened (isFlipped true) ensure blinking is removed from any action elements
-        try { if (isFlipped) { const a = el.querySelector('.service-card-action'); if (a && a.classList && a.classList.contains('blinking')) a.classList.remove('blinking'); } } catch (e) {}
+    // When opened (isFlipped true) ensure blinking is visually stopped by adding blink-stopped
+    try { if (isFlipped) { const a = el.querySelector('.service-card-action'); if (a && a.classList && a.classList.contains('blinking')) a.classList.add('blink-stopped'); } } catch (e) {}
 
                 // If a panel exists, focus first list item so keyboard users can see content
                 try {
@@ -465,6 +597,21 @@ class RiskDashboard {
                     }
                 } catch (e) { /* non-fatal */ }
             };
+
+            // Close the flipped service card when clicking outside
+            const outsideClickHandler = (ev) => {
+                try {
+                    const panelOpen = ce.classList.contains('flipped');
+                    if (!panelOpen) return;
+                    const target = ev.target;
+                    // If click is inside the service-card or the flipped control-environment, ignore
+                    if (!target) return;
+                    if (el.contains(target) || ce.contains(target)) return;
+                    // otherwise, unflip
+                    toggleServicePanel(ev);
+                } catch (e) { /* ignore */ }
+            };
+            document.addEventListener('click', outsideClickHandler);
 
             // Clicking the overall service card will toggle the flip. The inner return button stops propagation.
             el.addEventListener('click', (ev) => {
@@ -765,6 +912,26 @@ class RiskDashboard {
                 }
                 this.data = json;
                 this.lastDataHash = hash;
+                // Update the small 'Last Updated' display only when the incoming JSON actually changed.
+                try {
+                    const el = document.getElementById('last-updated');
+                    let display = '';
+                    if (json && json.metadata && json.metadata.lastUpdated) {
+                        const dt = new Date(json.metadata.lastUpdated);
+                        if (!isNaN(dt)) {
+                            const time = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            const date = dt.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                            display = `${date} ${time}`;
+                        }
+                    }
+                    if (!display) {
+                        const now = new Date();
+                        const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const date = now.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                        display = `${date} ${time}`;
+                    }
+                    if (el) el.textContent = display;
+                } catch (e) { /* non-fatal */ }
                 // If incoming JSON contains netLossValue, use it to drive the fuel gauge (0..200, millions)
                 try {
                     const rawNet = this.data && this.data.netLossValue;
@@ -2294,6 +2461,31 @@ class RiskDashboard {
             const el = document.getElementById(this.controlItemMappings[mappingKey]);
             if (el) el.setAttribute('data-status', status);
         });
+        // Also refresh any right-panel static text from data.rightPanel if present
+        try { this.updateRightPanelText(); } catch (e) { /* non-fatal */ }
+    }
+
+    // Populate right-panel control names and status text from data.rightPanel when provided
+    updateRightPanelText() {
+        try {
+            const rp = this.data && this.data.rightPanel;
+            if (!rp) return;
+            Object.entries(rp).forEach(([id, info]) => {
+                try {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    const nameEl = el.querySelector('.control-name');
+                    const statusEl = el.querySelector('.control-status');
+                    if (info.name && nameEl) nameEl.textContent = info.name;
+                    if (info.status && statusEl) {
+                        // Keep the status-light span inside the status text if present
+                        const light = statusEl.querySelector('.status-light');
+                        statusEl.textContent = info.status + ' ';
+                        if (light) statusEl.appendChild(light);
+                    }
+                } catch (e) { /* ignore per-control failures */ }
+            });
+        } catch (e) { /* non-fatal */ }
     }
 
     updateTimestamp() {
@@ -2302,9 +2494,8 @@ class RiskDashboard {
     const date = now.toLocaleDateString([], { month: 'short', day: 'numeric' });
     const el = document.getElementById('last-updated');
     if (el) el.textContent = `${date} ${time}`;
-    // Sync to main dashboard footer
-    const mainLastUpdated = document.getElementById('main-last-updated');
-    if (mainLastUpdated) mainLastUpdated.textContent = el ? el.textContent : `${date} ${time}`;
+    // Note: do NOT sync this data-driven last-updated into the main dashboard footer.
+    // The footer shows a live ISO 8601 clock (updated separately) per user request.
     }
 
     updateDashboard() {
@@ -2377,7 +2568,7 @@ class RiskDashboard {
                 issuesOpen.textContent = (this.engineActive && typeof this.data?.issuesOpenValue !== 'undefined') ? ('Issues Open: ' + this.data.issuesOpenValue) : '';
             }
         }
-        this.updateTimestamp();
+    // Do not refresh the small '#last-updated' here; it is updated only when the JSON changes.
     }
 
     startRealTimeUpdates() {
@@ -2386,6 +2577,47 @@ class RiskDashboard {
             const changed = await this.loadData();
             if (changed) { this.updateDashboard(); console.log('Data updated'); }
         }, 5000);
+    }
+
+    // More robust watcher that focuses on detecting changes to data/risk-data.json and
+    // updating the small last-updated label plus the dashboard when new data arrives.
+    startDataWatcher(pollMs = 5000) {
+        if (this._dataWatcherInterval) clearInterval(this._dataWatcherInterval);
+        this._dataWatcherInterval = setInterval(async () => {
+            try {
+                const res = await fetch(`./data/risk-data.json?t=${Date.now()}`);
+                if (!res || !res.ok) return;
+                const json = await res.json();
+                const hash = JSON.stringify(json);
+                if (hash !== this.lastDataHash) {
+                    this.data = json;
+                    this.lastDataHash = hash;
+                    // update the small last-updated display using metadata if available
+                    try {
+                        const el = document.getElementById('last-updated');
+                        let display = '';
+                        if (json && json.metadata && json.metadata.lastUpdated) {
+                            const dt = new Date(json.metadata.lastUpdated);
+                            if (!isNaN(dt)) {
+                                const time = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                const date = dt.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                                display = `${date} ${time}`;
+                            }
+                        }
+                        if (!display) {
+                            const now = new Date();
+                            const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            const date = now.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                            display = `${date} ${time}`;
+                        }
+                        if (el) el.textContent = display;
+                    } catch (e) { /* non-fatal */ }
+                    // Apply the new data to the UI
+                    try { this.updateDashboard(); } catch (e) { console.warn('updateDashboard after data watcher change failed', e); }
+                    console.log('Data watcher: new data loaded');
+                }
+            } catch (e) { /* ignore transient network errors */ }
+        }, pollMs);
     }
 
     // Normalize status strings from external data so synonyms are accepted.

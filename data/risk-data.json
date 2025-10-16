@@ -53,7 +53,7 @@
     "engine-control": {
       "outcome": "At trigger",
       "Appetite Consumption Threshold": "KES <=130m - Target; KES >130m<=190m - Trigger; KES >190m - Risk",
-      "Appetite Consumption Outcome": "Target (81.5 M)",
+      "Appetite Consumption Outcome": "At Target (81.5 M)",
       "SRTs Threshold": "0-10% - Target; >10% <50% - Target; >=50% - Risk",
       "SRTs Outcome": "Trigger (15%)"
     },
@@ -67,14 +67,20 @@
       "Overall Outcome": "At-Target"
     },
     "abs-control": {
-      "measurement": "Control Processes Metrics",      
-      "CPA Refresh (Within 12 Months)": ">90% - Target; 80%-90% - Trigger; <80% - Risk",
-      "CPA Refresh Outcome": "Target (20 CPAs)",
-      "C.A. plan execution": ">85% - Target; 74%-84% - Trigger; <74% - Risk",
-      "C.A. plan execution Outcome": "Target (88%)",
-      "% UNSAT/NI Reports (YTD)": "<10% -Target; >10% <20% - Triger; >20% - Risk",
-      "% UNSAT/NI Reports Outcome": "At Target (5%)",
-      "Overall Outcome": "At-Target"
+      "measurement": "Control Processes Metrics",
+      "Issues Overdue/Reopened/Failed IV": "0 - Target; <5 - Trigger; >=5 - Risk",
+      "Issues Overdue/Reopened/Failed IV Outcome": "Target (4)",
+      "Issues/milestones at Risk": ">5 <10 - Target; >10 <20 - Trigger; >20 - Risk",
+      "Issues/milestones at Risk Outcome": "Risk (24)",
+      "No of Material Issues (Major/Critical)": ">5 <10 - Target; >10 <20 - Trigger; >20 - Risk",
+      "No of Material Issues (Major/Critical) Outcome": "Risk (28)",
+      "Risk Events Timelines Threshold": "=>=95% - Target; 90-94% - Trigger; <90% - Risk",
+      "Risk Events Timelines Outcome": "Target (100%)",
+      "Policy Localization Threshold": "=>=95% - Target; =>85% - Trigger; <85% - Risk",
+      "DWB Overdue Threshold": "<10% - Target; 10-15% - Trigger; >15% - Risk",
+      "DWB Overdue Outcome": "Target (9%)",
+      "outcome": "At Target",
+      "Overall Outcome": "At Target"
     },
     "temp-control": {
       "measurement": "Issue resolution time",
@@ -86,11 +92,11 @@
       "No of Material Issues (Major/Critical)": ">5 <10 - Target; >10 <20 - Trigger; >20 - Risk",
       "No of Material Issues (Major/Critical) Outcome": "Risk (28)",
       "Risk Events Timelines Threshold": "=>=95% - Target; 90-94% - Trigger; <90% - Risk",
-      "Risk Events Timelines Outcome": "Target (100)",
+      "Risk Events Timelines Outcome": "Target (100%)",
       "Policy Localization Threshold": "=>=95% - Target; =>85% - Trigger; <85% - Risk",
       "DWB Overdue Threshold": "<10% - Target; 10-15% - Trigger; >15% - Risk",
       "DWB Overdue Outcome": "Target (9%)",
-      "Overall Outcome": "At-Trigger"
+      "Overall Outcome": "At Trigger"
     },
     "bulb-control": {
       "measurement": "Data quality score",
@@ -99,27 +105,25 @@
       "% of KIs assessed on time Outcome": "Risk (73%)",
       "Risk Types without KIs on ORMS": "0 - Target; N/A - Trigger; >0 - Risk",
       "Risk Types without KIs on ORMS Outcome": "Target (0)",
-      "outcome": "At-Trigger"
+      "outcome": "At-Trigger",
+      "Overall Outcome": "At Trigger"
     },
     "brake-control": {
       "measurement": "Traction control failures",
       "threshold": "< 1%",
-      "outcome": "At target",
       "Control Related Vacant Roles (>90 days)": "<=3 - Target; >3-5 - Trigger; >5 - Risk",
       "Control Related Vacant Roles (>90 days) Outcome": "Target (0)",
-      "Structure Capacity Metrics": "Control Related Vacant Roles (>90 days): <=3 >3-5 >5; Overdue Mandatory Training (%): 0% <3% >3%",
-      "Vacant Roles (>90 days) Actual": "0",
-      "Vacant Roles (% of population)": "3%",
-      "Overdue Mandatory Training (Actual %)": "0.50%",
-      "Overdue Mandatory Training (Comparison %)": "1%",
-      "Risk Areas": "FinCrime, Cyber & Conduct risk"
+      "Overdue Mandatory Training (%)": "0% -Target; <3% - Trigger;  >3% - Risk",
+      "Overdue Mandatory Training Outcome": "Target (0.50%)",
+      "Overall Outcome": "At Target"
     },
     "fuel-control": {
       "measurement": "Appetite utilization %",
       "threshold": "KES <=130m - Target; KES >130m<=190m - Trigger; KES >190m - Risk",
       "outcome": "Target",
       "Appetite Consumption Threshold": "KES <=130m - Target; KES >130m<=190m - Trigger; KES >190m - Risk",
-      "Appetite Consumption Outcome": "Target (81.5 M)"
+      "Appetite Consumption Outcome": "Target (81.5 M)",
+      "Overall Outcome": "At Target"
     },
     "srt-metrics": {
       "measurement": "SRTs",
@@ -139,12 +143,53 @@
       "outcome": "Satisfactory(Target)"
     }
   },
+    "rightPanel": {
+      "engine-control": {
+        "name": "Country Control Environment",
+        "status": "Check Engine - Control gaps"
+      },
+      "abs-control": {
+        "name": "Control Processes",
+        "status": "Anti-lock - control effectiveness"
+      },
+      "temp-control": {
+        "name": "Control Weaknesses & Issues",
+        "status": "Temperature - Issue Management"
+      },
+      "esp-control": {
+        "name": "Change Management",
+        "status": "Electronic Stability - Monitors org change"
+      },
+      "brake-control": {
+        "name": "Structure",
+        "status": "Traction Control - Capacity"
+      },
+      "bulb-control": {
+        "name": "Management Infomation",
+        "status": "Bulb - Data quality & reporting"
+      },
+      "fuel-control": {
+        "name": "Appetite Consumption",
+        "status": "Fuel - Risk appetite utilization"
+      },
+      "srs-control": {
+        "name": "BCM & Resilience",
+        "status": "Supplemental - Business continuity"
+      },
+      "seatbelt-control": {
+        "name": "Plan Testing",
+        "status": "Seat Belt - Evidence & Drills"
+      },
+      "oil-control": {
+        "name": "Capacity & Capability",
+        "status": "Oil - Resource adequacy"
+      }
+    },
   "metadata": {
-    "lastUpdated": "2025-01-15T14:30:00Z"
+    "lastUpdated": "2025-10-16T12:30:00Z"
   }
 
 }
-
 
 
 
