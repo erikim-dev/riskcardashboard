@@ -5,6 +5,20 @@
 .control-inline-detail strong, .control-inline-detail b { color: #e6eef5; }
 /* prevent child elements from showing click cursor; only the container is clickable */
 .control-inline-detail * { cursor: default !important; }
+/* When the inline detail is long, constrain its height and allow scrolling */
+.control-inline-detail {
+  max-height: 220px; /* reasonable default for the right-panel */
+  overflow-y: auto;
+  overscroll-behavior: contain; /* keep scroll within the panel */
+  padding-right: 6px; /* room for scrollbar */
+}
+
+/* Subtle custom scrollbar for modern browsers */
+.control-inline-detail { scrollbar-width: thin; scrollbar-color: var(--absa-red-light) rgba(255,255,255,0.02); }
+.control-inline-detail::-webkit-scrollbar { width: 12px; height: 12px; }
+.control-inline-detail::-webkit-scrollbar-thumb { background: var(--absa-red-light); border-radius: 8px; border: 2px solid rgba(0,0,0,0.12); box-shadow: 0 0 6px rgba(165,18,43,0.35); }
+.control-inline-detail::-webkit-scrollbar-thumb:hover { background: var(--absa-red); box-shadow: 0 0 10px rgba(122,0,31,0.6); }
+.control-inline-detail::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 8px; }
 :root {
   /* ABSA maroon theme */
   --absa-red: #7A001F; /* primary maroon */
@@ -406,6 +420,8 @@ text.percent-dynamic-value,
   font-size: 0.95rem;
 }
 
+/* Login removed: styles intentionally deleted to reduce unused CSS */
+
 /* Service card standalone page and clean back-face styling */
 .service-card-page { padding: 1rem; color: var(--text-primary); background: linear-gradient(180deg, rgba(18,4,6,0.98), rgba(18,4,6,0.96)); min-height: 100vh; }
 .service-card-front h2 { font-size: 1.25rem; margin-bottom: 0.5rem; }
@@ -681,6 +697,12 @@ body.powered-off #engine-start-btn {
 .right-panel .control-status { font-size: calc(var(--rp-small) * 0.96); color: #bfbfbf; }
 .right-panel .control-name:hover, .right-panel .control-status:hover { text-decoration: none; cursor: pointer; }
 
+/* Align Control Processes status to the left (default) */
+#abs-control .control-status {
+  justify-content: flex-start; /* push text and status-light to the left */
+  text-align: left;
+}
+
 .right-panel .service-panel .service-panel-content { padding: 0.22rem; }
 .right-panel .service-list li { padding: 0.22rem 0.28rem; gap: 0.28rem; }
 .right-panel .service-item-label { font-size: calc(var(--rp-base) * 1.18); color: #cfcfcf; font-weight: 600; }
@@ -740,6 +762,18 @@ body.powered-off #engine-start-btn {
 .alert-item[data-status="at-trigger"] {
   background: rgba(255, 171, 0, 0.06);
   border-color: var(--status-amber);
+/* Small circular status light placed before the control-status text */
+.control-status { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 0.9rem; }
+.status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.06); box-shadow: 0 0 6px rgba(0,0,0,0.4); flex: 0 0 12px; }
+
+/* Map status colours from the control-item's data-status attribute */
+.control-item[data-status="at-target"] .status-light { background: var(--status-green); box-shadow: var(--glow-green); }
+.control-item[data-status="at-trigger"] .status-light { background: var(--status-amber); box-shadow: var(--glow-amber); }
+.control-item[data-status="at-risk"] .status-light { background: var(--status-red); box-shadow: var(--glow-red); }
+
+/* Add accessible focus outline when control-item is focused/clickable */
+.control-item:focus-within .status-light, .control-item:hover .status-light { transform: scale(1.08); transition: transform var(--anim-fast) var(--anim-ease); }
+
 }
 .alert-item[data-status="at-risk"] {
   background: rgba(228, 0, 43, 0.06);

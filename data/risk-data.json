@@ -1,9 +1,9 @@
 {
   "issuesOpenValue": 201,
-  "netLossValue": "81.50 M",
-  "MTD Risk Events": "19",
+  "netLossValue": "82.27 M",
+  "MTD Risk Events": "20",
   "ytdRiskEvents": 202,
-  "dynamicValue285": "62.69%",
+  "dynamicValue285": "63.28%",
   "dynamicValue287": 16,
   "percentValue": 5.74,
   "gaugeValue": 15,
@@ -24,10 +24,7 @@
     "bcmResilience": "at-target",
     "appetiteConsumption": "at-target",
     "PlanTesting": "yes",
-    "leftIndicator": "at-risk",
-    "rightIndicator": "at-risk",
-    "headlight": "at-risk",
-  "capacity": "at-target"
+    "capacity": "at-target"
   },
   "svgElementMappings": {
     "changeManagement": "esp-warning-light",
@@ -41,7 +38,16 @@
     "leftIndicator": "left-indicator-warning-light",
     "rightIndicator": "right-indicator-warning-light",
     "headlight": "headlight-warning-light",
-  "capacity": "oil-warning-light"
+    "capacity": "oil-warning-light"
+  },
+  "indicatorConditions": {
+    "left-indicator-warning-light": ["allAtRisk", "upcomingAudit"],
+    "right-indicator-warning-light": ["allAtRisk", "upcomingAudit"],
+    "headlight-warning-light": ["allAtRisk", "upcomingAudit"]
+  },
+  "stressSituations": {
+    "upcomingAudit": false,
+    "financialClose": false
   },
   "controlDetails": {
     "engine-control": {
@@ -52,48 +58,57 @@
       "SRTs Outcome": "Trigger (15%)"
     },
     "esp-control": {
-      "measurement": "Change requests processed",
-      "threshold": "< 5% exceptions",
+      "measurement": "Change Management Metrics",
       "NAPA Overdue items Threshold": ">5 <10 - Target; >11 <20 - Trigger; >20 - Risk",
       "NAPA Overdue items Outcome": "Target (5%)",
       "Change KRIs Performance (Avg Score) Threshold": "2 - Target; 1 - Trigger; 0 - Risk",
       "Change KRIs Performance (Avg Score) Outcome": "Target (2)",
+      "outcome": "At-Target",
+      "Overall Outcome": "At-Target"
+    },
+    "abs-control": {
+      "measurement": "Control Processes Metrics",
+      "threshold": "CPA Refresh (Within 12 Months): >90% - Target; 80%-90% - Monitor; <80% - Risk; C.A. plan execution: >85% - Target; 74%-84% - Trigger; <74% - Risk; % UNSAT/NI Reports (YTD): <10% - Target; 10%-20% - Trigger; >20% - Risk",
+      "CPA Refresh (Within 12 Months)": ">90% 80%-90% <80% (20 CPAs)",
+      "CPA Refresh Outcome": "Target 20 CPAs)",
+      "C.A. plan execution": ">85% 74%-84% <74%",
+      "C.A. plan execution Outcome": "Target (88%)",
+      "% UNSAT/NI Reports (YTD)": "<10% >10% <20% >20%",
+      "% UNSAT/NI Reports Outcome": "At Target (5%)",
+      "outcome": "At-Target",
       "Overall Outcome": "At-Target"
     },
     "temp-control": {
       "measurement": "Issue resolution time",
       "threshold": "<= 7 days",
-      "Control Weaknesses & Issues Thresholds": "Issues Overdue/Reopened/Failed IV: 0 <5 >=5; Issues/milestones at Risk: >5 <10 >10 <20 >20; No of Material Issues (Major/Critical): >5 <10 >10 <20 Critical >20; Critical/Major Open Issues <12 months: <12 months in age",
-      "Control Weaknesses & Issues Values": "Issues Overdue/Reopened/Failed IV: 4 0 reopened 0 reopened >0 reopened; Issues/milestones at Risk: 24; No of Material Issues (Major/Critical): 28; DWBs Overdue: 9%",
+      "Issues Overdue/Reopened/Failed IV": "0 - Target; <5 - Trigger; >=5 - Risk",
+      "Issues Overdue/Reopened/Failed IV Outcome": "Target (4)",
+      "Issues/milestones at Risk": ">5 <10 - Target; >10 <20 - Trigger; >20 - Risk",
+      "Issues/milestones at Risk Outcome": "Risk (24)",
+      "No of Material Issues (Major/Critical)": ">5 <10 - Target; >10 <20 - Trigger; >20 - Risk",
+      "No of Material Issues (Major/Critical) Outcome": "Risk (28)",
       "Risk Events Timelines Threshold": "=>=95% - Target; 90-94% - Trigger; <90% - Risk",
+      "Risk Events Timelines Outcome": "Target (100)",
       "Policy Localization Threshold": "=>=95% - Target; =>85% - Trigger; <85% - Risk",
       "DWB Overdue Threshold": "<10% - Target; 10-15% - Trigger; >15% - Risk",
+      "DWB Overdue Outcome": "Target (9%)",
       "Overall Outcome": "At-Trigger"
     },
     "bulb-control": {
       "measurement": "Data quality score",
       "threshold": ">= 90%",
-      "Management Information Metrics": "% of KIs assessed on time: 100% >=90% <90%; Overdue status: 0% Trigger <7 days overdue >7 days overdue; Risk Types without KIs on ORMS: 0 N/A >0",
-      "% of KIs assessed on time Actual": "73%",
-      "Overdue (Days) Actual": "0%",
-      "Risk Types without KIs on ORMS Actual": "n/a",
-      "Overall Outcome": "At-Trigger"
-    },
-    "abs-control": {
-      "measurement": "ABS incidents rate",
-      "threshold": "<= 2%",
-      "outcome": "At target",
-      "Control Processes Metrics": "CPA Refresh (Within 12 Months): >90% 80%-90% <80% (20 CPAs); C.A. plan execution: >85% 74%-84% <74%; % UNSAT/NI Reports (YTD): <10% >10% <20% >20%",
-      "CPA Refresh Actual": "88%",
-      "CPA Refresh Notes": "20 CPAs",
-      "C.A. plan execution Actual": "88%",
-      "% UNSAT/NI Reports (YTD) Actual": "5%",
-      "Overall Outcome": "At-Target"
+      "% of KIs assessed on time": "100% - Target; >=90% or <7 days overdue - Trigger; <90% - Risk; Overdue status: 0% Trigger or >7 days overdue - Risk",
+      "% of KIs assessed on time Outcome": "Risk (73%)",
+      "Risk Types without KIs on ORMS": "0 - Target; N/A - Trigger; >0 - Risk",
+      "Risk Types without KIs on ORMS Outcome": "Target (0)",
+      "outcome": "At-Trigger"
     },
     "brake-control": {
       "measurement": "Traction control failures",
       "threshold": "< 1%",
       "outcome": "At target",
+      "Control Related Vacant Roles (>90 days)": "<=3 - Target; >3-5 - Trigger; >5 - Risk",
+      "Control Related Vacant Roles (>90 days) Outcome": "Target (0)",
       "Structure Capacity Metrics": "Control Related Vacant Roles (>90 days): <=3 >3-5 >5; Overdue Mandatory Training (%): 0% <3% >3%",
       "Vacant Roles (>90 days) Actual": "0",
       "Vacant Roles (% of population)": "3%",
@@ -114,15 +129,15 @@
       "outcome": "Target"
     },
     "srs-control": {
-      "measurement": "BCM readiness",      
+      "measurement": "BCM readiness",
       "outcome": "Satisfactory(Target)"
     },
     "seatbelt-control": {
-      "measurement": "Plan testing coverage",      
+      "measurement": "Plan testing coverage",
       "outcome": "Satisfactory(Target)"
     },
     "oil-control": {
-      "measurement": "Capacity ratio",      
+      "measurement": "Capacity ratio",
       "outcome": "Satisfactory(Target)"
     }
   },

@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         observer.observe(lastUpdated, { childList: true, subtree: true });
     }
+
+    // Login overlay removed: no interactive sign-in required for this build
 });
 // Single consolidated RiskDashboard controller
 class RiskDashboard {
@@ -313,14 +315,17 @@ class RiskDashboard {
                         row.appendChild(l); row.appendChild(v); return row;
                     };
 
+                    // No special-case here: let the default record/table rendering handle control details.
+                    let handledSpecial = false; // kept for compatibility with older logic; remains false
+
                     if (record) {
-                        // For Change Management (esp-control) and Control Weaknesses (temp-control)
-                        // we must never display the Outcome row
-                        if ((ci.id || '').toString() === 'esp-control' || (ci.id || '').toString() === 'temp-control' || (ci.id || '').toString() === 'bulb-control') {
-                            // intentionally skip outcome display for esp-control, temp-control and bulb-control
+                        // For Change Management (esp-control), Control Weaknesses (temp-control) and bulb-control
+                        // we intentionally do not show the outcome row. Control Processes (abs-control) SHOULD show it.
+                        if ((ci.id || '').toString() === 'temp-control' || (ci.id || '').toString() === 'bulb-control') {
+                            // intentionally skip outcome display for these controls
                         } else {
-                            // Determine label: use 'Overall Outcome' for key controls, otherwise 'Outcome'
-                            const specialOverall = ['engine-control','fuel-control'];
+                            // Determine label: use 'Overall Outcome' for key controls (including abs-control), otherwise 'Outcome'
+                            const specialOverall = ['engine-control','fuel-control','abs-control','bulb-control','esp-control'];
                             const outcomeLabel = specialOverall.includes((ci.id || '').toString()) ? 'Overall Outcome' : 'Outcome';
                             grid.appendChild(mkRow(outcomeLabel, record.outcome || record.result || record.status || '—'));
                         }
@@ -329,7 +334,7 @@ class RiskDashboard {
                     }
 
                     // Optionally include a small details table if more keys exist
-                    if (record && Object.keys(record).length > 3) {
+                    if (record && !handledSpecial && Object.keys(record).length > 3) {
                         const details = document.createElement('div'); details.style.marginTop = '8px';
                         const table = document.createElement('table'); table.style.width = '100%'; table.style.borderCollapse = 'collapse';
                         Object.entries(record).forEach(([k,v]) => {
@@ -1816,6 +1821,16 @@ class RiskDashboard {
     updateSVGWarningLights() {
         if (!this.carDashboardSVG || !this.data) return;
 
+        // If the engine is not active, avoid applying live colors which can cause a brief blink
+        // during startup. Instead enforce the neutral powered-off visuals and skip the rest.
+        if (!this.engineActive) {
+            try {
+                // enforce synchronously (with retries internally) and return early
+                this.enforcePoweredOffSvgVisuals({ attempts: 6, delay: 140 }).catch(() => {});
+            } catch (e) { /* ignore */ }
+            return;
+        }
+
         const statusColors = {
             'at-target': '#333333',
                 'at-trigger': '#FFBF00',
@@ -1827,6 +1842,29 @@ class RiskDashboard {
     // Precompute summary flags used later for indicators/headlight logic
     const anyAtRisk = Object.values(this.data.controlSystems || {}).some(raw => this.normalizeStatus(raw) === 'at-risk');
     const anyAtTrigger = Object.values(this.data.controlSystems || {}).some(raw => this.normalizeStatus(raw) === 'at-trigger');
+    // allAtRisk true when we have at least one control and every control is at-risk
+    const controlVals = Object.values(this.data.controlSystems || {});
+    const allAtRisk = (controlVals.length > 0) && controlVals.every(raw => this.normalizeStatus(raw) === 'at-risk');
+
+    // Resolve headlight id early so we can exclude it from the generic per-node pass
+    const headlightMappingEarly = (this.data.svgElementMappings && this.data.svgElementMappings.headlight) || 'headlight-warning-light';
+    const headlightResolvedIdEarly = this.resolveSvgId(headlightMappingEarly) || headlightMappingEarly;
+
+    // Helper: determine whether an indicator (by resolved svg id) should be active based on
+    // indicatorConditions and stressSituations in the JSON. Conditions may include 'allAtRisk'
+    // or named stress flags like 'upcomingAudit'.
+    const indicatorShouldActivate = (resolvedId) => {
+        try {
+            const conditions = (this.data.indicatorConditions && this.data.indicatorConditions[resolvedId]) || [];
+            if (!Array.isArray(conditions) || !conditions.length) return false;
+            // If any condition is satisfied, activate
+            for (const cond of conditions) {
+                if (cond === 'allAtRisk' && allAtRisk) return true;
+                if (this.data.stressSituations && this.data.stressSituations[cond]) return true;
+            }
+            return false;
+        } catch (e) { return false; }
+    };
 
     // Build reverse mapping: svgId (resolved) -> [systems...]
     const reverse = {};
@@ -1841,6 +1879,8 @@ class RiskDashboard {
 
     // For each unique svg id, compute aggregated status from its systems and update the node once
     Object.entries(reverse).forEach(([resolvedId, systems]) => {
+        // do not update the headlight in the generic pass — it is handled separately below
+        if (resolvedId === headlightResolvedIdEarly) return;
         const node = this.carDashboardSVG.getElementById(resolvedId);
         if (!node) {
             // attempt substring fallback using first system token
@@ -1891,7 +1931,7 @@ class RiskDashboard {
 
         // Derived parking light: turn on when all mapped systems are in 'at-risk'
         try {
-            const parkingNode = this.carDashboardSVG.getElementById('parking-warning-light');
+            const parkingNode = this.carDashboardSVG.getElementById('Traction-Control-Warning-Light');
             if (parkingNode) {
                 const allAtRisk = Object.entries(mappings).every(([system]) => this.normalizeStatus(this.data.controlSystems[system]) === 'at-risk');
                 const pColor = allAtRisk ? statusColors['at-risk'] : statusColors['at-target'];
@@ -1936,12 +1976,18 @@ class RiskDashboard {
             const leftId = this.resolveSvgId(leftMapping) || leftMapping;
             const rightId = this.resolveSvgId(rightMapping) || rightMapping;
 
-            // Headlight: amber when any alert at-trigger or at-risk, otherwise gray
+            // Headlight: controlled by indicatorConditions or allAtRisk; otherwise neutral
             const headlightNode = this.carDashboardSVG.getElementById(headlightId);
             if (headlightNode) {
-                const color = overallAlert ? '#FFBF00' : '#333333';
+                // Headlight is steady amber when its conditions are active; do not blink.
                 headlightNode.classList.remove('warning-blink');
                 headlightNode.style.filter = '';
+                let color = '#333333';
+                const activate = indicatorShouldActivate(headlightId);
+                if (activate) {
+                    color = '#FFBF00'; // amber steady
+                    // no blinking for headlight; keep steady amber
+                }
                 const shapes = headlightNode.querySelectorAll('path, circle, rect, polygon');
                 shapes.forEach(p => { p.setAttribute('fill', color); p.style.fill = color; });
             }
@@ -1953,9 +1999,18 @@ class RiskDashboard {
             [leftId, rightId].forEach(id => {
                 const node = this.carDashboardSVG.getElementById(id);
                 if (!node) return;
+                // determine whether this indicator should be active via indicatorConditions
+                const activate = indicatorShouldActivate(id);
                 const shapes = node.querySelectorAll('path, circle, rect, polygon');
-                shapes.forEach(p => { p.setAttribute('fill', indicatorColor); p.style.fill = indicatorColor; });
-                node.classList.toggle('warning-blink', isRisk);
+                const fillColor = activate ? '#18b618' : '#333333';
+                shapes.forEach(p => { p.setAttribute('fill', fillColor); p.style.fill = fillColor; });
+                // Blink whenever active (regardless of severity). Glow only on isRisk.
+                if (activate) node.classList.add('warning-blink'); else node.classList.remove('warning-blink');
+                if (activate && isRisk) {
+                    try { node.style.filter = `drop-shadow(0 0 8px ${fillColor})`; } catch (e) {}
+                } else {
+                    try { node.style.filter = ''; } catch (e) {}
+                }
             });
 
             console.debug('DBG indicator/headlight updated', { overallAlert, headlightId, leftId, rightId, isRisk });
@@ -2049,11 +2104,57 @@ class RiskDashboard {
             // Ensure overlay sits above images
             node.appendChild(overlay);
         }
-        overlay.setAttribute('fill', color);
-        overlay.style.fill = color;
-        overlay.style.filter = (status !== 'at-target') ? `drop-shadow(0 0 6px ${color})` : '';
-        overlay.classList.toggle('warning-blink', status === 'at-risk');
+        // sync overlay color and visibility
+        try { overlay.setAttribute('fill', color); overlay.style.fill = color; } catch (e) {}
+        }
+
+    // When the system is powered off we want every warning-light group to visually appear neutral.
+    // This helper enforces a flat fill (#333333) and clears any glow/blink. It retries a few times
+    // because the SVG or data may not be available immediately at startup.
+    enforcePoweredOffSvgVisuals(opts = {}) {
+        const attempts = Number(opts.attempts || 5);
+        const delay = Number(opts.delay || 120);
+        const targetFill = '#333333';
+        const tryOnce = () => {
+            if (!this.carDashboardSVG) return false;
+            // select groups by id pattern or class name
+            const candidates = Array.from(this.carDashboardSVG.querySelectorAll('[id]'))
+                .filter(n => String(n.id || '').toLowerCase().endsWith('-warning-light') || String(n.className && n.className.baseVal || n.className || '').toLowerCase().includes('warning-light'));
+            if (!candidates.length) return false;
+            candidates.forEach(node => {
+                try {
+                    node.classList.remove('warning-blink');
+                    node.style.filter = '';
+                    // update child shapes
+                    const shapes = node.querySelectorAll('path, circle, rect, polygon, image');
+                    if (shapes && shapes.length) {
+                        shapes.forEach(s => {
+                            try {
+                                if (/image/i.test(s.tagName)) return; // leave images alone
+                                s.setAttribute('fill', targetFill);
+                                s.style.fill = targetFill;
+                            } catch (e) {}
+                        });
+                    } else {
+                        // ensure overlay exists and is colored
+                        try { this.ensureOverlayIndicator(node, node.id || 'unknown', targetFill, 'at-target'); } catch (e) {}
+                    }
+                } catch (e) { /* ignore individual node errors */ }
+            });
+            return true;
+        };
+
+        let attempt = 0;
+        const run = () => {
+            attempt += 1;
+            const ok = tryOnce();
+            if (ok) return Promise.resolve(true);
+            if (attempt >= attempts) return Promise.resolve(false);
+            return new Promise(resolve => setTimeout(() => resolve(run()), delay));
+        };
+        return run();
     }
+    
 
     updateDashboardStatus() {
         if (!this.carDashboardSVG) return;
@@ -2916,6 +3017,17 @@ class RiskDashboard {
                                 el.classList.remove('status-forced-off');
                             }
                         });
+                    }
+                } catch (e) { /* non-fatal */ }
+                // Ensure SVG visuals reflect power state: when off, force all warning lights to neutral #333333;
+                // when on, restore colors from data via updateSVGWarningLights(). Use a retry helper in case SVG
+                // hasn't loaded yet.
+                try {
+                    if (!this.engineActive) {
+                        // try to enforce powered-off visuals with retries
+                        try { this.enforcePoweredOffSvgVisuals(); } catch (e) { /* ignore */ }
+                    } else {
+                        try { this.updateSVGWarningLights(); } catch (e) { /* ignore */ }
                     }
                 } catch (e) { /* non-fatal */ }
             }
