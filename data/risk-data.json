@@ -67,15 +67,13 @@
       "Overall Outcome": "At-Target"
     },
     "abs-control": {
-      "measurement": "Control Processes Metrics",
-      "threshold": "CPA Refresh (Within 12 Months): >90% - Target; 80%-90% - Monitor; <80% - Risk; C.A. plan execution: >85% - Target; 74%-84% - Trigger; <74% - Risk; % UNSAT/NI Reports (YTD): <10% - Target; 10%-20% - Trigger; >20% - Risk",
-      "CPA Refresh (Within 12 Months)": ">90% 80%-90% <80% (20 CPAs)",
-      "CPA Refresh Outcome": "Target 20 CPAs)",
-      "C.A. plan execution": ">85% 74%-84% <74%",
+      "measurement": "Control Processes Metrics",      
+      "CPA Refresh (Within 12 Months)": ">90% - Target; 80%-90% - Trigger; <80% - Risk",
+      "CPA Refresh Outcome": "Target (20 CPAs)",
+      "C.A. plan execution": ">85% - Target; 74%-84% - Trigger; <74% - Risk",
       "C.A. plan execution Outcome": "Target (88%)",
-      "% UNSAT/NI Reports (YTD)": "<10% >10% <20% >20%",
+      "% UNSAT/NI Reports (YTD)": "<10% -Target; >10% <20% - Triger; >20% - Risk",
       "% UNSAT/NI Reports Outcome": "At Target (5%)",
-      "outcome": "At-Target",
       "Overall Outcome": "At-Target"
     },
     "temp-control": {
@@ -146,6 +144,7 @@
   }
 
 }
+
 
 
 
