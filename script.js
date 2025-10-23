@@ -522,7 +522,19 @@ class RiskDashboard {
                     const w1 = measureTextWidth('Open Service Card Status', actionEl);
                     const w2 = measureTextWidth('Return to Main', actionEl);
                     const desired = Math.max(w1, w2) + 12; // padding buffer
-                    actionEl.style.minWidth = desired + 'px';
+                    // Apply a fixed min-width only on larger viewports where space is available.
+                    // On small screens we want the label to shrink (CSS handles it via clamp()/flex).
+                    try {
+                        if (window.matchMedia && window.matchMedia('(min-width: 861px)').matches) {
+                            actionEl.style.minWidth = desired + 'px';
+                        } else {
+                            // clear any previously-set minWidth so CSS can allow shrinking
+                            actionEl.style.minWidth = '';
+                        }
+                    } catch (e) {
+                        // fallback: if matchMedia isn't supported, set minWidth conservatively
+                        actionEl.style.minWidth = desired + 'px';
+                    }
                 }
             } catch (e) { /* non-fatal measurement */ }
 

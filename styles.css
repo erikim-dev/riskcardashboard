@@ -186,6 +186,14 @@ body {
   .right-panel { width: 100%; min-width: 0; height: auto; }
 }
 
+/* Very small viewports: make the Service Card ultra-compact */
+@media (max-width: 420px) {
+  .service-card { padding: 3px 6px; margin: 4px 6px; }
+  .service-card-title { font-size: 0.78rem; }
+  .service-card-action { font-size: clamp(0.56rem, 2.2vw, 0.78rem); padding: 2px 4px; }
+  .service-card-inner { gap: 6px; }
+}
+
 /* Small tweak for very short viewports: limit header height and make main-dashboard scroller */
 @media (max-height: 520px) {
   :root { --header-height: 40px; }
@@ -365,10 +373,17 @@ text.percent-dynamic-value,
 }
 
 .fuel-gauge-risk { top: 25%; left: 10%; }
-.service-card { margin: 6px 8px; padding: 6px; border-radius: 8px; background: linear-gradient(90deg, rgba(0,191,255,0.06), rgba(0,191,255,0.1)); border: 1px solid rgba(0,191,255,0.14); cursor: pointer; }
-.service-card-inner { display:flex; align-items:center; justify-content:space-between; gap:6px; }
-.service-card-title { color: #dfeff6; font-weight:600; font-size:0.95rem; }
-.service-card-action { color: #00bfff; font-weight:700; text-align:right; font-size:0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 0 8px rgba(0,191,255,0.9); }
+.service-card { margin: 6px 8px; padding: 4px 6px; border-radius: 8px; background: linear-gradient(90deg, rgba(0,191,255,0.05), rgba(0,191,255,0.09)); border: 1px solid rgba(0,191,255,0.12); cursor: pointer; }
+.service-card-inner { display:flex; align-items:center; justify-content:space-between; gap:4px; min-width:0; }
+.service-card-title { color: #dfeff6; font-weight:600; font-size:0.88rem; }
+/* Allow the action label to shrink on narrow screens instead of wrapping */
+.service-card-action { color: #00bfff; font-weight:600; text-align:right; /* fluid font-size: small screens shrink the text */
+  font-size: clamp(0.62rem, 1.0vw + 0.36rem, 0.86rem);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 0 6px rgba(0,191,255,0.75);
+  /* allow flex parent to shrink this item when necessary */
+  flex: 0 1 auto; max-width: 100%;
+  padding: 2px 6px;
+}
 .service-card:focus { outline: 3px solid rgba(0,191,255,0.12); outline-offset: 2px; }
 .service-card:active { transform: translateY(1px); }
 .service-card-action:focus { outline: none; }
@@ -382,11 +397,7 @@ text.percent-dynamic-value,
 }
 
 /* Keep the service-card-action width stable to prevent jumping when the text changes */
-.service-card-action {
-  display: inline-block;
-  min-width: 14ch; /* reserve width for the longer 'Open Service Card Status' text */
-  padding: 4px 8px;
-}
+.service-card-action { display: inline-block; min-width: 0; }
 .service-card-action.service-card-return { cursor: pointer; }
 
 /* blinking neon-blue action text */
