@@ -952,13 +952,14 @@ class RiskDashboard {
                 // If incoming JSON contains dynamicValue287 use it to drive temp pointer (0..20)
                 try {
                     const rawT = this.data && this.data.dynamicValue287;
-                    if (typeof rawT !== 'undefined' && rawT !== null) {
-                        const n = Number(String(rawT).toString().replace(/[^0-9.\-]/g, ''));
-                        if (Number.isFinite(n)) {
-                            this.data.tempValue = Math.max(0, Math.min(20, Math.round(n)));
-                            console.debug('Derived tempValue from dynamicValue287', { rawT, tempValue: this.data.tempValue });
+                        if (typeof rawT !== 'undefined' && rawT !== null) {
+                            const n = Number(String(rawT).toString().replace(/[^0-9.\-]/g, ''));
+                            if (Number.isFinite(n)) {
+                                // Map incoming dynamicValue287 into 0..25 range for temperature gauge
+                                this.data.tempValue = Math.max(0, Math.min(25, Math.round(n)));
+                                console.debug('Derived tempValue from dynamicValue287', { rawT, tempValue: this.data.tempValue });
+                            }
                         }
-                    }
                 } catch (e) { /* non-fatal */ }
                 // If the SVG is already loaded, re-validate mappings so runtime JSON changes take effect
                 if (this.carDashboardSVG) {
@@ -1143,49 +1144,50 @@ class RiskDashboard {
     // Keep hub fixed: don't auto-refine hub X/Y to avoid visible pivot shifts
         const tickSelectors = [
             // 0
-            'rect.cls-3[x="432.12"][y="316.26"]',
+            'rect[x="432.12"][y="316.26"]',
             // 2
-            'rect.cls-3[x="430.22"][y="300.33"]',
+            'rect[x="430.22"][y="300.33"]',
             // 4
-            'rect.cls-3[x="438.76"][y="276.13"]',
+            'rect[x="438.76"][y="276.13"]',
             // 6
-            'rect.cls-3[x="441.76"][y="261.1"]',
+            'rect[x="441.76"][y="261.1"]',
             // 8
-            'rect.cls-3[x="450.31"][y="244.4"]',
+            'rect[x="450.31"][y="244.4"]',
             // 10
-            'rect.cls-3[x="458.83"][y="231.54"]',
+            'rect[x="458.83"][y="231.54"]',
             // 12
-            'rect.cls-3[x="471.82"][y="218.73"]',
+            'rect[x="471.82"][y="218.73"]',
             // 14
-            'rect.cls-3[x="484.98"][y="209.59"]',
+            'rect[x="484.98"][y="209.59"]',
             // 16
-            'rect.cls-3[x="500.82"][y="202.16"]',
+            'rect[x="500.82"][y="202.16"]',
             // 18
-            'rect.cls-3[x="517.06"][y="197.92"]',
+            'rect[x="517.06"][y="197.92"]',
             // 20
-            'rect.cls-3[x="532.87"][y="196.42"]',
+            'rect[x="532.87"][y="196.42"]',
             // 22
-            'rect.cls-3[x="545.58"][y="203.53"]',
+            'rect[x="545.58"][y="203.53"]',
             // 24
-            'rect.cls-3[x="559"][y="209.47"]',
+            'rect[x="559"][y="209.47"]',
             // 26
-            'rect.cls-3[x="577.66"][y="215.2"]',
+            'rect[x="577.66"][y="215.2"]',
             // 28
-            'rect.cls-3[x="587.03"][y="226.53"]',
+            'rect[x="587.03"][y="226.53"]',
             // 30
-            'rect.cls-3[x="603.81"][y="237.15"]',
+            'rect[x="603.81"][y="237.15"]',
             // 32
-            'rect.cls-3[x="607.39"][y="252.25"]',
+            'rect[x="607.39"][y="252.25"]',
             // 34
-            'rect.cls-3[x="620.89"][y="266.71"]',
+            'rect[x="620.89"][y="266.71"]',
             // 36
-            'rect.cls-3[x="617.35"][y="283.82"]',
+            'rect[x="617.35"][y="283.82"]',
             // 38
-            'rect.cls-3[x="626.6"][y="300.33"]',
-            // 40
-            'rect.cls-3[x="629.35"][y="311.73"]'
+            'rect[x="626.6"][y="300.33"]',
+            // 100
+            'rect[x="629.35"][y="311.73"]'
         ];
-        const scaleValues = [0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40];
+    // Map tick selectors to percent values (0..100) — 21 selectors -> 0,5,10,...,100
+    const scaleValues = Array.from({length: 21}, (_,i) => i * 5);
         const tickAngles = [];
         for (let i = 0; i < tickSelectors.length; i++) {
             const r = svg.querySelector(tickSelectors[i]);
@@ -1201,20 +1203,22 @@ class RiskDashboard {
         }
         // Always compute endpoint-based dynamic mapping as a fallback
         try {
-            const zeroRect = svg.querySelector('rect.cls-3[x="432.12"][y="316.26"]');
-            const maxRect = svg.querySelector('rect.cls-3[x="629.35"][y="311.73"]');
+            // Use the exact zero and 100 tick rects (user-provided selectors)
+            const zeroRect = svg.querySelector('rect[x="432.12"][y="316.26"]');
+            const maxRect = svg.querySelector('rect[x="629.35"][y="311.73"]');
             if (zeroRect && maxRect) {
                 const b0 = zeroRect.getBBox();
                 const b1 = maxRect.getBBox();
                 const c0x = b0.x + b0.width/2, c0y = b0.y + b0.height/2;
                 const c1x = b1.x + b1.width/2, c1y = b1.y + b1.height/2;
                 const a0 = Math.atan2(c0y - hubY, c0x - hubX) * 180 / Math.PI;
-                let a40 = Math.atan2(c1y - hubY, c1x - hubX) * 180 / Math.PI;
-                // unwrap a40 so it's the nearest equivalent relative to a0 (avoid crossing -180/180 seam)
-                while (a40 - a0 > 180) a40 -= 360;
-                while (a40 - a0 < -180) a40 += 360;
+                let a100 = Math.atan2(c1y - hubY, c1x - hubX) * 180 / Math.PI;
+                // unwrap a100 so it's the nearest equivalent relative to a0 (avoid crossing -180/180 seam)
+                while (a100 - a0 > 180) a100 -= 360;
+                while (a100 - a0 < -180) a100 += 360;
                 this._speedAngle0Exact = a0;
-                this._speedAngleSlope = (a40 - a0) / 40;
+                // slope per percentage point (0..100)
+                this._speedAngleSlope = (a100 - a0) / 100;
             }
         } catch (e) { /* ignore */ }
         if (tickAngles.some(a => a === null)) {
@@ -1230,11 +1234,11 @@ class RiskDashboard {
         for (let i = 0; i < scaleValues.length; i++) {
             this.speedTickMap.set(scaleValues[i], tickAngles[i]);
         }
-        for (let s = 1; s < 40; s += 1) {
+        for (let s = 1; s <= 100; s += 1) {
             if (this.speedTickMap.has(s)) continue;
             let low = null, high = null;
             for (let v = s - 1; v >= 0; v--) if (this.speedTickMap.has(v)) { low = v; break; }
-            for (let v = s + 1; v <= 40; v++) if (this.speedTickMap.has(v)) { high = v; break; }
+            for (let v = s + 1; v <= 100; v++) if (this.speedTickMap.has(v)) { high = v; break; }
             if (low !== null && high !== null) {
                 const a0 = this.speedTickMap.get(low);
                 const a1 = this.speedTickMap.get(high);
@@ -1248,28 +1252,29 @@ class RiskDashboard {
         [() => this.calibrateMaxTick(), 'calibrateMaxTick failed'],
         [() => this.enforceLeftToRightOrientation(), 'enforceLeftToRightOrientation failed']
     ]);
-    // Recompute precise midpoint angle for value 1 using actual tick rect centers to ensure it's exactly between 0 and 2
+    // Recompute fine-grained interpolation between 0 and 5 using rect centers (fills 1..4)
     try {
-        if (this.carDashboardSVG && this.speedTickMap && this.speedTickMap.has(0) && this.speedTickMap.has(2)) {
+        if (this.carDashboardSVG && this.speedTickMap && this.speedTickMap.has(0) && this.speedTickMap.has(5)) {
             const svg = this.carDashboardSVG;
             const hubX = this.gaugeHubX, hubY = this.gaugeHubY;
-            const r0 = svg.querySelector('rect.cls-3[x="432.12"][y="316.26"]');
-            const r2 = svg.querySelector('rect.cls-3[x="430.22"][y="300.33"]');
-            if (r0 && r2) {
+            const r0 = svg.querySelector('rect[x="432.12"][y="316.26"]');
+            const r5 = svg.querySelector('rect[x="430.22"][y="300.33"]');
+            if (r0 && r5) {
                 const b0 = r0.getBBox();
-                const b2 = r2.getBBox();
+                const b5 = r5.getBBox();
                 const c0x = b0.x + b0.width/2, c0y = b0.y + b0.height/2;
-                const c2x = b2.x + b2.width/2, c2y = b2.y + b2.height/2;
-                // Midpoint in Cartesian space, then convert to angle; this is more geometrically accurate than averaging angles if arc not perfectly linear
-                const midX = (c0x + c2x)/2;
-                const midY = (c0y + c2y)/2;
-                const angle1 = Math.atan2(midY - hubY, midX - hubX) * 180 / Math.PI;
-                this.speedTickMap.set(1, angle1);
-                console.debug('Set angle for value 1 (geometric midpoint)', { angle1, angle0: this.speedTickMap.get(0), angle2: this.speedTickMap.get(2) });
-            } else if (!this.speedTickMap.has(1)) {
-                // fallback to pure angular midpoint if rects missing
-                const a0 = this.speedTickMap.get(0), a2 = this.speedTickMap.get(2);
-                this.speedTickMap.set(1, a0 + (a2 - a0)/2);
+                const c5x = b5.x + b5.width/2, c5y = b5.y + b5.height/2;
+                for (let p = 1; p < 5; p++) {
+                    const t = p / 5;
+                    const ix = c0x + (c5x - c0x) * t;
+                    const iy = c0y + (c5y - c0y) * t;
+                    const ang = Math.atan2(iy - hubY, ix - hubX) * 180 / Math.PI;
+                    this.speedTickMap.set(p, ang);
+                }
+            } else {
+                // fallback: set 1..4 by angular interpolation between existing 0 and 5
+                const a0 = this.speedTickMap.get(0), a5 = this.speedTickMap.get(5);
+                for (let p = 1; p < 5; p++) this.speedTickMap.set(p, a0 + (a5 - a0) * (p / 5));
             }
         }
     } catch (e) { console.warn('value 1 midpoint calc failed', e); }
@@ -1529,7 +1534,8 @@ class RiskDashboard {
         if (!this.carDashboardSVG || !this.speedTickMap || !this.speedTickMap.has(0)) return;
         const svg = this.carDashboardSVG;
         const hubX = this.gaugeHubX, hubY = this.gaugeHubY;
-        const zeroRect = svg.querySelector('rect.cls-3[x="432.12"][y="316.26"]');
+        // zero tick in artwork uses cls-18 as per asset
+    const zeroRect = svg.querySelector('rect[x="432.12"][y="316.26"]');
         if (!zeroRect) return;
         try {
             const b = zeroRect.getBBox();
@@ -1548,12 +1554,14 @@ class RiskDashboard {
         } catch (e) { console.warn('calibrateZeroTick error', e); }
     }
 
-    // Ensure gauge value 40 points exactly at the specified max tick rectangle (629.35,311.73)
+    // Ensure gauge value 100 points exactly at the specified max tick rectangle (629.35,311.73)
     calibrateMaxTick() {
-        if (!this.carDashboardSVG || !this.speedTickMap || !this.speedTickMap.has(40)) return;
+        // Ensure we have a partial/full speedTickMap and at least the 100 key
+        if (!this.carDashboardSVG || !this.speedTickMap || !this.speedTickMap.has(100)) return;
         const svg = this.carDashboardSVG;
         const hubX = this.gaugeHubX, hubY = this.gaugeHubY;
-        const rect = svg.querySelector('rect.cls-3[x="629.35"][y="311.73"]');
+        // max rect in artwork uses cls-30 per asset
+    const rect = svg.querySelector('rect[x="629.35"][y="311.73"]');
         if (!rect) return;
         try {
             const b = rect.getBBox();
@@ -1561,7 +1569,7 @@ class RiskDashboard {
             const cy = b.y + b.height/2;
             const expectedMax = Math.atan2(cy - hubY, cx - hubX) * 180 / Math.PI;
             const a0 = this.speedTickMap.get(0);
-            const currentMax = this.speedTickMap.get(40);
+            const currentMax = this.speedTickMap.get(100);
             // Ensure zero already calibrated; now scale span exactly
             const currentSpan = currentMax - a0;
             const desiredSpan = expectedMax - a0;
@@ -1572,13 +1580,13 @@ class RiskDashboard {
                     this.speedTickMap.forEach((ang, k) => {
                         if (k === 0) scaled.set(k, a0); else scaled.set(k, a0 + (ang - a0) * scale);
                     });
-                    scaled.set(40, expectedMax);
+                    scaled.set(100, expectedMax);
                     this.speedTickMap = scaled;
                     if (this.data && typeof this.data.gaugeValue !== 'undefined') this.updateSpeedPointer(this.data.gaugeValue);
                     console.debug('calibrateMaxTick: span scaled', { expectedMax, currentMax, scale, desiredSpan, currentSpan });
                 } else if (Math.abs(currentMax - expectedMax) > 0.01) {
                     // Minor snap only
-                    this.speedTickMap.set(40, expectedMax);
+                    this.speedTickMap.set(100, expectedMax);
                 }
             }
         } catch (e) { console.warn('calibrateMaxTick error', e); }
@@ -1859,24 +1867,24 @@ class RiskDashboard {
     try { this.applyPowerState(); } catch (e) {}
     }
 
-    // Enforce that value 0 appears on the left and value 40 on the right.
+    // Enforce that value 0 appears on the left and value 100 on the right.
     // In standard SVG coordinate system, left-of-center tick usually yields a larger positive or negative angle depending on orientation.
-    // We'll simply check the x positions of the 0 and 40 tick centers and ensure the angle ordering matches increasing value moving rightwards.
+    // We'll simply check the x positions of the 0 and 100 tick centers and ensure the angle ordering matches increasing value moving rightwards.
     enforceLeftToRightOrientation() {
         if (!this.carDashboardSVG || !this.speedTickMap) return;
         const a0 = this.speedTickMap.get(0);
-        const a40 = this.speedTickMap.get(40);
+        const a100 = this.speedTickMap.get(100);
         if (typeof a0 !== 'number' || typeof a40 !== 'number') return;
         // Determine geometric left/right via tick rect centers
         try {
-            const zeroRect = this.carDashboardSVG.querySelector('rect.cls-3[x="432.12"][y="316.26"]');
-            const maxRect = this.carDashboardSVG.querySelector('rect.cls-3[x="629.35"][y="311.73"]');
+            const zeroRect = this.carDashboardSVG.querySelector('rect[x="432.12"][y="316.26"]');
+            const maxRect = this.carDashboardSVG.querySelector('rect[x="629.35"][y="311.73"]');
             if (zeroRect && maxRect) {
                 const b0 = zeroRect.getBBox(); const b1 = maxRect.getBBox();
                 const leftIsZero = (b0.x + b0.width/2) < (b1.x + b1.width/2);
                 // We want angle progression (value increases → pointer rotates from left tick toward right tick).
                 // If current mapping rotates the opposite way (monotonic direction wrong), invert span around a0.
-                const increasingMovesRight = a40 < a0; // typical if angles decrease when moving right
+                const increasingMovesRight = a100 < a0; // typical if angles decrease when moving right
                 if (leftIsZero && !increasingMovesRight) {
                     const inverted = new Map();
                     this.speedTickMap.forEach((ang, k) => {
@@ -1884,7 +1892,7 @@ class RiskDashboard {
                     });
                     this.speedTickMap = inverted;
                     if (this.data && typeof this.data.gaugeValue !== 'undefined') this.updateSpeedPointer(this.data.gaugeValue);
-                    console.debug('enforceLeftToRightOrientation: inverted mapping so angles decrease with value', { a0Original: a0, newA40: this.speedTickMap.get(40) });
+                    console.debug('enforceLeftToRightOrientation: inverted mapping so angles decrease with value', { a0Original: a0, newA100: this.speedTickMap.get(100) });
                 }
             }
         } catch (e) { console.warn('enforceLeftToRightOrientation error', e); }
@@ -2502,7 +2510,10 @@ class RiskDashboard {
         this.updateAlerts();
         this.updateControlSystems();
         this.updateSVGWarningLights();
-    const gaugeValue = (typeof this.data?.SRT !== 'undefined') ? this.data.SRT : ((typeof this.data?.gaugeValue !== 'undefined') ? this.data.gaugeValue : 0);
+    // Resolve speed gauge numeric value from data: prefer KRIs (may be a string like "46.31%"),
+    // fall back to numeric gaugeValue. Normalize to Number for consistent pointer mapping.
+    let gaugeRaw = (typeof this.data?.KRIs !== 'undefined') ? this.data.KRIs : ((typeof this.data?.gaugeValue !== 'undefined') ? this.data.gaugeValue : 0);
+    let gaugeNumeric = this._parsePercentValue(gaugeRaw);
         try {
             if (!this.engineActive) {
                 // car off: always force pointer to zero, even if animation is running
@@ -2513,28 +2524,32 @@ class RiskDashboard {
             } else {
                 // If a speed animation is currently running, avoid overriding it with an immediate set
                 if (!(this._speedAnim && this._speedAnim.cancelled === false)) {
-                    this.updateSpeedPointer(gaugeValue);
+                    this.updateSpeedPointer(gaugeNumeric);
                 } else {
                     console.debug('Skipping immediate speed pointer update during initial sweep');
                 }
             }
         } catch (e) { /* non-fatal */ }
         const digital = document.getElementById('speed-gauge-value');
-        if (digital) digital.textContent = this.engineActive ? gaugeValue : '';
+    if (digital) digital.textContent = this.engineActive ? (gaugeNumeric.toFixed(2) + '%') : '';
         if (this.carDashboardSVG) {
             const gaugeText = this.carDashboardSVG.getElementById('gauge-dynamic-value');
-            if (gaugeText) gaugeText.textContent = this.engineActive ? gaugeValue : '';
+            if (gaugeText) gaugeText.textContent = this.engineActive ? (gaugeNumeric.toFixed(2) + '%') : '';
             const percentText = this.carDashboardSVG.getElementById('percent-dynamic-value');
             if (percentText) {
-                if (this.engineActive && typeof this.data?.percentValue !== 'undefined') {
-                    percentText.textContent = this.data.percentValue + '%';
-                    // reflect percentValue on rpm pointer dynamically (engine on)
-                    try { if (typeof this.setRpmPercent === 'function') this.setRpmPercent(Number(this.data.percentValue)); } catch (e) { console.warn('setRpmPercent error', e); }
-                } else {
-                    percentText.textContent = '';
-                    // keep rpm at zero while off
-                    try { if (typeof this.setRpmToZero === 'function') this.setRpmToZero(); } catch (e) { /* ignore */ }
-                }
+                    // Display and drive RPM needle from SRT (authoritative for RPM). Accept percent strings like "15%".
+                    if (this.engineActive && typeof this.data?.SRT !== 'undefined') {
+                        const srtNum = this._parsePercentValue(this.data.SRT);
+                        percentText.textContent = srtNum.toFixed(2) + '%';
+                        // reflect SRT on rpm pointer dynamically (engine on)
+                        try { if (typeof this.setRpmPercent === 'function') this.setRpmPercent(srtNum); } catch (e) { console.warn('setRpmPercent error', e); }
+                        // update any HTML rpm label if present
+                        try { const rpmLabel = document.getElementById('rpm-value'); if (rpmLabel) rpmLabel.textContent = this.engineActive ? (srtNum.toFixed(2) + '%') : ''; } catch (e) {}
+                    } else {
+                        percentText.textContent = '';
+                        // keep rpm at zero while off
+                        try { if (typeof this.setRpmToZero === 'function') this.setRpmToZero(); } catch (e) { /* ignore */ }
+                    }
             }
             const dyn287 = this.carDashboardSVG.getElementById('dynamic-value-287');
             if (dyn287) {
@@ -2569,6 +2584,18 @@ class RiskDashboard {
             }
         }
     // Do not refresh the small '#last-updated' here; it is updated only when the JSON changes.
+    }
+
+    // Helper: parse percent strings like "46.31%" or numeric inputs into Number 0..100
+    _parsePercentValue(raw) {
+        if (typeof raw === 'number') return Number(raw);
+        if (!raw) return 0;
+        try {
+            const s = String(raw).trim();
+            const cleaned = s.replace('%', '').trim();
+            const n = Number(cleaned);
+            return Number.isFinite(n) ? n : 0;
+        } catch (e) { return 0; }
     }
 
     startRealTimeUpdates() {
@@ -2680,15 +2707,24 @@ class RiskDashboard {
     if (this.computePointerDxFromImage) this.computePointerDxFromImage();
     }
 
-    // Map a numeric gauge value (0..40) to rotation angle in degrees.
+    // Map a numeric gauge value (0..100) to rotation angle in degrees.
+    // Preference order: explicit speedTickMap -> artwork _gaugeCal -> endpoint slope (_speedAngle0Exact/_speedAngleSlope) -> default fallback
     valueToAngle(value) {
-        const v = Math.max(0, Math.min(40, Number(value) || 0));
-        // Prefer explicit tick map when available for per-tick accuracy
+        const v = Math.max(0, Math.min(100, Number(value) || 0));
+        // 1) Prefer explicit tick map when available for per-tick accuracy
         if (this.speedTickMap && this.speedTickMap.size > 1) {
             const speeds = Array.from(this.speedTickMap.keys()).sort((a,b)=>a-b);
-            // exact match
             if (this.speedTickMap.has(v)) return this.speedTickMap.get(v);
-            // find neighbors
+            // extrapolate above last tick using last two known ticks
+            if (v > speeds[speeds.length-1]) {
+                const lastTick = speeds[speeds.length-1];
+                const secondLastTick = speeds[speeds.length-2];
+                const lastAngle = this.speedTickMap.get(lastTick);
+                const secondLastAngle = this.speedTickMap.get(secondLastTick);
+                const anglePerUnit = (lastAngle - secondLastAngle) / (lastTick - secondLastTick);
+                return lastAngle + (anglePerUnit * (v - lastTick));
+            }
+            // interpolate between neighbor ticks
             let low = speeds[0], high = speeds[speeds.length-1];
             for (let i=0;i<speeds.length-1;i++){
                 if (v > speeds[i] && v < speeds[i+1]) { low = speeds[i]; high = speeds[i+1]; break; }
@@ -2697,12 +2733,37 @@ class RiskDashboard {
             const t = (v - low) / (high - low);
             return a0 + (a1 - a0) * t;
         }
-        // Otherwise, use dynamic linear mapping from calibrated endpoints (0 and 40) if available
+
+        // 2) If we have a gauge calibration computed from artwork anchors, use it
+        if (this._gaugeCal && typeof this._gaugeCal.angle0 === 'number' && typeof this._gaugeCal.angle100 === 'number') {
+            const a0 = this._gaugeCal.angle0;
+            const a100 = this._gaugeCal.angle100;
+            // choose the shortest/well-oriented delta (avoid +/-360 wrap) that moves the needle visually upward for small positive steps
+            const rawDelta = a100 - a0;
+            const candidates = [rawDelta, rawDelta + 360, rawDelta - 360];
+            const smallT = 0.02; const rad = (deg) => deg * Math.PI / 180; const yAt = (angleDeg) => Math.sin(rad(angleDeg));
+            const baseY = yAt(a0);
+            let best = candidates[0]; let bestUp = null;
+            for (const d of candidates) {
+                const ang = a0 + d * smallT;
+                const y = yAt(ang);
+                const up = (y < baseY);
+                if (bestUp === null) { bestUp = up; best = d; }
+                else if (up && !bestUp) { bestUp = up; best = d; }
+            }
+            const chosenDelta = best;
+            return a0 + chosenDelta * (v / 100);
+        }
+
+        // 3) Use dynamic linear mapping from calibrated endpoints if available (computed from exact 0 and 100 rects)
         if (typeof this._speedAngle0Exact === 'number' && typeof this._speedAngleSlope === 'number') {
             return this._speedAngle0Exact + this._speedAngleSlope * v;
         }
-        // fallback linear mapping 0 -> -90deg, 40 -> +90deg
-        return -90 + (v / 40) * 180;
+
+        // 4) fallback linear mapping based on observed default transforms
+        const angle0 = -9.98;  // default anchor
+        const angle100 = -80.01;  // default anchor
+        return angle0 + ((v / 100) * (angle100 - angle0));
     }
 
     // RPM runtime support removed. Related UI and APIs were cleaned from index.html and data.
@@ -2763,20 +2824,14 @@ class RiskDashboard {
     }
 
     // --- Temperature pointer support ---
-    calibrateTempPointer(zeroRectSelector = 'image[transform="translate(30.12 306.02) scale(.24)"]', maxRectSelector = 'rect.cls-24[x="88.68"][y="247.39"]') {
+    calibrateTempPointer() {
         if (!this.carDashboardSVG) return false;
         try {
             const svg = this.carDashboardSVG;
-            // Try exact selector first, then a tolerant search
-            let r0 = svg.querySelector(zeroRectSelector);
-            if (!r0) {
-                const imgs = Array.from(svg.querySelectorAll('image'));
-                r0 = imgs.find(img => {
-                    const t = img.getAttribute('transform') || '';
-                    return t.includes('30.12') && t.includes('306.02') && (img.getAttribute('width') === '48' || img.getAttribute('height') === '11');
-                });
-            }
-            const r1 = svg.querySelector(maxRectSelector);
+            // Use exact zero point from base64 image at 30.12,306.02
+            const r0 = svg.querySelector('image[transform="translate(30.12 306.02) scale(.24)"]');
+            // Use exact max point (40) from rect at 88.68,247.39
+            const r1 = svg.querySelector('rect[x="88.68"][y="247.39"]');
             if (!r0 || !r1) return false;
             // Compute center for the zero marker robustly.
             let c0x, c0y;
@@ -2808,38 +2863,38 @@ class RiskDashboard {
             const b1 = r1.getBBox();
             const c1x = b1.x + b1.width / 2, c1y = b1.y + b1.height / 2;
 
-            // If an explicit '2' tick exists (user provided), prefer mapping from tick-2 and tick-20
-            const r2 = svg.querySelector('rect.cls-18[x="34.28"][y="295.77"]');
+            // If an explicit '2' tick exists (user provided), prefer mapping from tick-2 and tick-25
+            const r2 = svg.querySelector('rect[x="34.28"][y="295.77"]');
             if (r2) {
                 try {
                     const b2 = r2.getBBox();
                     const c2x = b2.x + b2.width/2, c2y = b2.y + b2.height/2;
                     const a2 = Math.atan2(c2y - this.tempHubY, c2x - this.tempHubX) * 180 / Math.PI;
-                    const a20 = Math.atan2(c1y - this.tempHubY, c1x - this.tempHubX) * 180 / Math.PI;
-                    // slope per unit between 2 and 20
-                    const slope = (a20 - a2) / (20 - 2);
-                    const a0 = a2 - slope * 2;
+                    const a25 = Math.atan2(c1y - this.tempHubY, c1x - this.tempHubX) * 180 / Math.PI;
+                    // slope per unit between 2 and 25
+                    const slopePerUnit = (a25 - a2) / (25 - 2);
+                    const a0 = a2 - slopePerUnit * 2;
                     this._tempAngle0 = a0;
-                    this._tempAngle20 = a20;
-                    this._tempAngleSlope = (a20 - a0) / 20;
-                    console.debug('calibrateTempPointer (from 2 & 20)', { a0, a2, a20, slope: this._tempAngleSlope, c0x, c0y, c2x, c2y, c1x, c1y, hubX: this.tempHubX, hubY: this.tempHubY });
+                    this._tempAngle25 = a25;
+                    this._tempAngleSlope = (a25 - a0) / 25;
+                    console.debug('calibrateTempPointer (from 2 & 25)', { a0, a2, a25, slope: this._tempAngleSlope, c0x, c0y, c2x, c2y, c1x, c1y, hubX: this.tempHubX, hubY: this.tempHubY });
                 } catch (e) {
-                    // fallback to using image-derived zero and 20
+                    // fallback to using image-derived zero and 25
                     const a0 = Math.atan2(c0y - this.tempHubY, c0x - this.tempHubX) * 180 / Math.PI;
-                    const a20 = Math.atan2(c1y - this.tempHubY, c1x - this.tempHubX) * 180 / Math.PI;
+                    const a25 = Math.atan2(c1y - this.tempHubY, c1x - this.tempHubX) * 180 / Math.PI;
                     this._tempAngle0 = a0;
-                    this._tempAngle20 = a20;
-                    this._tempAngleSlope = (a20 - a0) / 20;
-                    console.debug('calibrateTempPointer (fallback image)', { a0, a20, slope: this._tempAngleSlope, c0x, c0y, c1x, c1y, hubX: this.tempHubX, hubY: this.tempHubY });
+                    this._tempAngle25 = a25;
+                    this._tempAngleSlope = (a25 - a0) / 25;
+                    console.debug('calibrateTempPointer (fallback image)', { a0, a25, slope: this._tempAngleSlope, c0x, c0y, c1x, c1y, hubX: this.tempHubX, hubY: this.tempHubY });
                 }
             } else {
-                // No tick-2; use image-derived zero and 20
+                // No tick-2; use image-derived zero and 25
                 const a0 = Math.atan2(c0y - this.tempHubY, c0x - this.tempHubX) * 180 / Math.PI;
-                const a20 = Math.atan2(c1y - this.tempHubY, c1x - this.tempHubX) * 180 / Math.PI;
+                const a25 = Math.atan2(c1y - this.tempHubY, c1x - this.tempHubX) * 180 / Math.PI;
                 this._tempAngle0 = a0;
-                this._tempAngle20 = a20;
-                this._tempAngleSlope = (a20 - a0) / 20;
-                console.debug('calibrateTempPointer (image only)', { a0, a20, slope: this._tempAngleSlope, c0x, c0y, c1x, c1y, hubX: this.tempHubX, hubY: this.tempHubY });
+                this._tempAngle25 = a25;
+                this._tempAngleSlope = (a25 - a0) / 25;
+                console.debug('calibrateTempPointer (image only)', { a0, a25, slope: this._tempAngleSlope, c0x, c0y, c1x, c1y, hubX: this.tempHubX, hubY: this.tempHubY });
             }
 
             // Immediately set the temp-pointer to the calibrated zero angle so it rests there
@@ -2866,8 +2921,9 @@ class RiskDashboard {
             this.calibrateTempPointer();
             if (typeof this._tempAngleSlope !== 'number') return;
         }
-        const v = Math.max(0, Math.min(20, Number(value) || 0));
-        const rawAngle = this._tempAngle0 + this._tempAngleSlope * v;
+    // Map input range 0..25 to calculated angle range
+    const v = Math.max(0, Math.min(25, Number(value) || 0));
+    const rawAngle = this._tempAngle0 + (this._tempAngleSlope * v);
         // Choose the nearest equivalent angle to the previous angle to avoid wrap/jump (account for +/-360 multiples)
         let targetAngle = rawAngle;
         if (typeof this._lastTempAngle === 'number') {
@@ -2910,7 +2966,7 @@ class RiskDashboard {
         if (!this.data) this.data = {};
         const num = Number(val);
         if (!Number.isFinite(num)) return;
-        this.data.tempValue = Math.max(0, Math.min(20, num));
+        this.data.tempValue = Math.max(0, Math.min(25, num));
         try { this.updateTempPointer(this.data.tempValue); } catch (e) {}
     }
 
@@ -3074,21 +3130,29 @@ class RiskDashboard {
             const resp = await fetch('data/risk-data.json?t=' + Date.now());
             if (!resp.ok) return;
             const json = await resp.json();
-            if (json && typeof json.gaugeValue !== 'undefined') {
+                if (json && typeof json.gaugeValue !== 'undefined') {
                 // Store the value but do NOT animate on initial load; the pointer
                 // should remain resting at zero until the system/engine is started
                 // or until the user interacts. Animation will occur on subsequent
                 // calls to setGaugeValue or when animatePointersToCurrent() is used.
                 try {
                     if (!this.data) this.data = {};
-                    this.data.gaugeValue = Math.max(0, Math.min(40, Number(json.gaugeValue) || 0));
+                    // Accept percent strings like "46.31%" or numeric values.
+                    let gv = json.gaugeValue;
+                    if (typeof gv === 'string') {
+                        const cleaned = gv.replace('%', '').trim();
+                        const num = Number(cleaned);
+                        this.data.gaugeValue = isFinite(num) ? Math.max(0, Math.min(100, num)) : 0;
+                    } else {
+                        this.data.gaugeValue = Math.max(0, Math.min(100, Number(gv) || 0));
+                    }
                     // update any dynamic text immediately
                     if (this.carDashboardSVG) {
                         const gaugeText = this.carDashboardSVG.getElementById('gauge-dynamic-value');
                         if (gaugeText) {
-                            gaugeText.textContent = this.data.gaugeValue;
-                            gaugeText.style.display = 'none';
-                        }
+                                    gaugeText.textContent = Number(this.data.gaugeValue).toFixed(2) + '%';
+                                    gaugeText.style.display = 'none';
+                                }
                     }
                 } catch (e) {}
             }
@@ -3101,9 +3165,11 @@ class RiskDashboard {
             if (!this.carDashboardSVG) return;
             const g = this.carDashboardSVG.querySelector('#speed-pointer');
             if (!g) return;
-            const v = Math.max(0, Math.min(40, Number(value) || 0));
+            const v = Math.max(0, Math.min(100, Number(value) || 0));
             // map using calibrated mapping (falls back to linear if missing)
             const target = this.valueToAngle(v);
+            // Debug: expose numeric and computed angle for verification
+            try { console.debug('updateSpeedPointer', { value: v, angle: target }); } catch (e) {}
             const hubX = this.gaugeHubX, hubY = this.gaugeHubY;
             // Apply pointerDx translate if present by composing transforms
             const dx = this.pointerDx || 0;
@@ -3141,7 +3207,7 @@ class RiskDashboard {
             if (!this.carDashboardSVG) return;
             const g = this.carDashboardSVG.querySelector('#speed-pointer');
             if (!g) return;
-            const v = Math.max(0, Math.min(40, Number(value) || 0));
+            const v = Math.max(0, Math.min(100, Number(value) || 0));
             const target = this.valueToAngle(v);
             const hubX = this.gaugeHubX, hubY = this.gaugeHubY;
             const dx = this.pointerDx || 0;
@@ -3166,12 +3232,12 @@ class RiskDashboard {
         if (!this.data) this.data = {};
         const num = Number(val);
         if (!Number.isFinite(num)) return;
-        this.data.gaugeValue = Math.max(0, Math.min(40, num));
+    this.data.gaugeValue = Math.max(0, Math.min(100, num));
         // Update numeric display but keep it hidden when the engine is off
         if (this.carDashboardSVG) {
             const gaugeText = this.carDashboardSVG.getElementById('gauge-dynamic-value');
             if (gaugeText) {
-                gaugeText.textContent = this.data.gaugeValue;
+                gaugeText.textContent = Number(this.data.gaugeValue).toFixed(2) + '%';
                 try {
                     gaugeText.style.display = this.engineActive ? '' : 'none';
                 } catch (e) {}
@@ -3181,6 +3247,15 @@ class RiskDashboard {
         if (this.engineActive) {
             try { this.updateSpeedPointer(this.data.gaugeValue); } catch (e) { /* non-fatal */ }
         }
+        // Try to persist the single value back to data/risk-data.json via local dev server
+        try {
+            // best-effort: don't block or throw if server not running
+            fetch((window.location.protocol === 'file:' ? 'http://localhost:3000' : '') + '/updateGauge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gaugeValue: this.data.gaugeValue + '%' })
+            }).then(resp => resp.json().catch(() => null)).then(() => {/* ignore */}).catch(() => {/* ignore */});
+        } catch (e) { /* ignore */ }
     }
 
     // Apply the global power state by toggling a class on <body> and syncing the button aria.
@@ -3301,15 +3376,25 @@ class RiskDashboard {
     // Animate pointers to their current data values when powering on
     animatePointersToCurrent() {
         try {
-            const gv = (typeof this.data?.gaugeValue !== 'undefined') ? this.data.gaugeValue : 0;
+            // Prefer KRIs (authoritative for speed) and fall back to gaugeValue
+            const rawK = (typeof this.data?.KRIs !== 'undefined') ? this.data.KRIs : ((typeof this.data?.gaugeValue !== 'undefined') ? this.data.gaugeValue : 0);
+            const kNum = this._parsePercentValue(rawK);
             try { const gaugeText = this.carDashboardSVG && this.carDashboardSVG.getElementById('gauge-dynamic-value'); if (gaugeText) gaugeText.style.display = ''; } catch (e) {}
-            this.updateSpeedPointer(gv);
+            this.updateSpeedPointer(kNum);
         } catch (e) { /* ignore */ }
         try {
             if (typeof this.data?.fuelValue !== 'undefined') this.updateFuelPointer(this.data.fuelValue);
         } catch (e) { /* ignore */ }
         try {
             if (typeof this.data?.tempValue !== 'undefined') this.updateTempPointer(this.data.tempValue);
+        } catch (e) { /* ignore */ }
+        // Ensure RPM animates to SRT when present
+        try {
+            if (this.carDashboardSVG && typeof this.data?.SRT !== 'undefined' && typeof this.setRpmPercent === 'function') {
+                const srt = this._parsePercentValue(this.data.SRT);
+                this.setRpmPercent(srt);
+                try { const rpmLabel = document.getElementById('rpm-value'); if (rpmLabel) rpmLabel.textContent = this.engineActive ? (srt.toFixed(2) + '%') : ''; } catch (e) {}
+            }
         } catch (e) { /* ignore */ }
     }
 

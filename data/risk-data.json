@@ -1,13 +1,13 @@
 {
   "issuesOpenValue": 201,
-  "netLossValue": "82.27 M",
-  "MTD Risk Events": "20",
-  "ytdRiskEvents": 202,
-  "dynamicValue285": "63.28%",
-  "dynamicValue287": 16,
-  "percentValue": 5.74,
-  "gaugeValue": 15,
+  "netLossValue": "82.64 M",
+  "MTD Risk Events": "24",
+  "ytdRiskEvents": 253,
+  "dynamicValue285": "43.49%",
+  "dynamicValue287": 24,
   "SRT": "15%",
+  "KRIs": "46.31%",
+  "KRIsStatus": "not determined",
   "alerts": [
     {
       "id": "alert-1",
@@ -186,7 +186,7 @@
       }
     },
   "metadata": {
-    "lastUpdated": "2025-10-16T12:30:00Z"
+    "lastUpdated": "2025-10-23T00:00:00Z"
   }
 
 }
