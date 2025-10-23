@@ -87,7 +87,7 @@
       "measurement": "Control Processes Metrics",      
       "CPA Refresh (Within 12 Months)": ">=90% - Target; >=80%-<90% - Trigger; <80% - Risk",
       "CPA Refresh (Within 12 Months) Outcome": "Target (95%)",
-      "C.A. plan execution": ">5 <10 - Target; ">=85% - Target; >=75%-<85% - Trigger; <75% - Risk",
+      "C.A. plan execution": ">=85% - Target; >=75%-<85% - Trigger; <75% - Risk",
       "C.A. plan execution Outcome": "Target (95%)",
       "% UNSAT/NI Reports (YTD)": "=<10 - Target; >10%-=<20% - Trigger; >20% - Risk",
       "% UNSAT/NI Reports (YTD) Outcome": "Target (6%)", 
@@ -184,6 +184,7 @@
   }
 
 }
+
 
 
 
