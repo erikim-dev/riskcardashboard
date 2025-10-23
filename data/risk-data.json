@@ -1,5 +1,5 @@
 {
-  "issuesOpenValue": 201,
+  "issuesOpenValue": 255,
   "netLossValue": "82.64 M",
   "MTD Risk Events": "24",
   "ytdRiskEvents": 253,
@@ -53,7 +53,7 @@
     "engine-control": {
       "outcome": "At trigger",
       "Appetite Consumption Threshold": "KES <=130m - Target; KES >130m<=190m - Trigger; KES >190m - Risk",
-      "Appetite Consumption Outcome": "At Target (81.5 M)",
+      "Appetite Consumption Outcome": "At Target (82.64M)",
       "SRTs Threshold": "0-10% - Target; >10% <50% - Target; >=50% - Risk",
       "SRTs Outcome": "Trigger (15%)"
     },
@@ -62,50 +62,44 @@
       "NAPA Overdue items Threshold": ">5 <10 - Target; >11 <20 - Trigger; >20 - Risk",
       "NAPA Overdue items Outcome": "Target (5%)",
       "Change KRIs Performance (Avg Score) Threshold": "2 - Target; 1 - Trigger; 0 - Risk",
-      "Change KRIs Performance (Avg Score) Outcome": "Target (2)",
+      "Change KRIs Performance (Avg Score) Outcome": "Target (5)",
       "outcome": "At-Target",
       "Overall Outcome": "At-Target"
     },
-    "abs-control": {
-      "measurement": "Control Processes Metrics",
+    "temp-control": {
+      "measurement": "Control Weaknesses & Issues Metrics",
       "Issues Overdue/Reopened/Failed IV": "0 - Target; <5 - Trigger; >=5 - Risk",
-      "Issues Overdue/Reopened/Failed IV Outcome": "Target (4)",
+      "Issues Overdue/Reopened/Failed IV Outcome": "Trigger (4)",
       "Issues/milestones at Risk": ">5 <10 - Target; >10 <20 - Trigger; >20 - Risk",
-      "Issues/milestones at Risk Outcome": "Risk (24)",
+      "Issues/milestones at Risk Outcome": "Target (5)",
       "No of Material Issues (Major/Critical)": ">5 <10 - Target; >10 <20 - Trigger; >20 - Risk",
-      "No of Material Issues (Major/Critical) Outcome": "Risk (28)",
+      "No of Material Issues (Major/Critical) Outcome": "Risk (27)",
       "Risk Events Timelines Threshold": "=>=95% - Target; 90-94% - Trigger; <90% - Risk",
-      "Risk Events Timelines Outcome": "Target (100%)",
+      "Risk Events Timelines Outcome": "Target (96%)",
       "Policy Localization Threshold": "=>=95% - Target; =>85% - Trigger; <85% - Risk",
+      "Policy Localization Outcome": "Target (97%)",
       "DWB Overdue Threshold": "<10% - Target; 10-15% - Trigger; >15% - Risk",
-      "DWB Overdue Outcome": "Target (9%)",
+      "DWB Overdue Outcome": "Target (5%)",
       "outcome": "At Target",
       "Overall Outcome": "At Target"
     },
-    "temp-control": {
-      "measurement": "Issue resolution time",
-      "threshold": "<= 7 days",
-      "Issues Overdue/Reopened/Failed IV": "0 - Target; <5 - Trigger; >=5 - Risk",
-      "Issues Overdue/Reopened/Failed IV Outcome": "Target (4)",
-      "Issues/milestones at Risk": ">5 <10 - Target; >10 <20 - Trigger; >20 - Risk",
-      "Issues/milestones at Risk Outcome": "Risk (24)",
-      "No of Material Issues (Major/Critical)": ">5 <10 - Target; >10 <20 - Trigger; >20 - Risk",
-      "No of Material Issues (Major/Critical) Outcome": "Risk (28)",
-      "Risk Events Timelines Threshold": "=>=95% - Target; 90-94% - Trigger; <90% - Risk",
-      "Risk Events Timelines Outcome": "Target (100%)",
-      "Policy Localization Threshold": "=>=95% - Target; =>85% - Trigger; <85% - Risk",
-      "DWB Overdue Threshold": "<10% - Target; 10-15% - Trigger; >15% - Risk",
-      "DWB Overdue Outcome": "Target (9%)",
-      "Overall Outcome": "At Trigger"
+    "abs-control": {
+      "measurement": "Control Processes Metrics",      
+      "CPA Refresh (Within 12 Months)": ">=90% - Target; >=80%-<90% - Trigger; <80% - Risk",
+      "CPA Refresh (Within 12 Months) Outcome": "Target (95%)",
+      "C.A. plan execution": ">5 <10 - Target; ">=85% - Target; >=75%-<85% - Trigger; <75% - Risk",
+      "C.A. plan execution Outcome": "Target (95%)",
+      "% UNSAT/NI Reports (YTD)": "=<10 - Target; >10%-=<20% - Trigger; >20% - Risk",
+      "% UNSAT/NI Reports (YTD) Outcome": "Target (6%)", 
     },
     "bulb-control": {
       "measurement": "Data quality score",
       "threshold": ">= 90%",
-      "% of KIs assessed on time": "100% - Target; >=90% or <7 days overdue - Trigger; <90% - Risk; Overdue status: 0% Trigger or >7 days overdue - Risk",
-      "% of KIs assessed on time Outcome": "Risk (73%)",
+      "% of KIs assessed on time": "100% - Target; >=90%; <90% - Risk",
+      "% of KIs assessed on time Outcome": "Risk (79%)",
       "Risk Types without KIs on ORMS": "0 - Target; N/A - Trigger; >0 - Risk",
       "Risk Types without KIs on ORMS Outcome": "Target (0)",
-      "outcome": "At-Trigger",
+      "outcome": "At-Target",
       "Overall Outcome": "At Trigger"
     },
     "brake-control": {
@@ -114,7 +108,7 @@
       "Control Related Vacant Roles (>90 days)": "<=3 - Target; >3-5 - Trigger; >5 - Risk",
       "Control Related Vacant Roles (>90 days) Outcome": "Target (0)",
       "Overdue Mandatory Training (%)": "0% -Target; <3% - Trigger;  >3% - Risk",
-      "Overdue Mandatory Training Outcome": "Target (0.50%)",
+      "Overdue Mandatory Training Outcome": "Target (0.050%)",
       "Overall Outcome": "At Target"
     },
     "fuel-control": {
@@ -122,7 +116,7 @@
       "threshold": "KES <=130m - Target; KES >130m<=190m - Trigger; KES >190m - Risk",
       "outcome": "Target",
       "Appetite Consumption Threshold": "KES <=130m - Target; KES >130m<=190m - Trigger; KES >190m - Risk",
-      "Appetite Consumption Outcome": "Target (81.5 M)",
+      "Appetite Consumption Outcome": "Target (82.64M)",
       "Overall Outcome": "At Target"
     },
     "srt-metrics": {
@@ -190,6 +184,7 @@
   }
 
 }
+
 
 
 
