@@ -90,7 +90,10 @@
       "C.A. plan execution": ">=85% - Target; >=75%-<85% - Trigger; <75% - Risk",
       "C.A. plan execution Outcome": "Target (95%)",
       "% UNSAT/NI Reports (YTD)": "=<10 - Target; >10%-=<20% - Trigger; >20% - Risk",
-      "% UNSAT/NI Reports (YTD) Outcome": "Target (6%)", 
+      "% UNSAT/NI Reports (YTD) Outcome": "Target (6%)"
+      ,
+      "outcome": "At Target",
+      "Overall Outcome": "At-target"
     },
     "bulb-control": {
       "measurement": "Data quality score",
