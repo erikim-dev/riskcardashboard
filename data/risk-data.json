@@ -4,7 +4,7 @@
   "MTD Risk Events": "24",
   "ytdRiskEvents": 253,
   "dynamicValue285": "43.49%",
-  "dynamicValue287": 24,
+  "dynamicValue287": 5,
   "SRT": "15%",
   "KRIs": "11.08%",
   "KRIsStatus": "not determined",
@@ -187,6 +187,7 @@
   }
 
 }
+
 
 
 
