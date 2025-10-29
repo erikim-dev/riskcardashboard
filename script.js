@@ -303,8 +303,14 @@ class RiskDashboard {
 
                 const renderDetail = () => {
                     // toggle panel
-                    let wrapper = ci.querySelector('.control-inline-detail');
-                    if (wrapper) { wrapper.remove(); return; }
+                        let wrapper = ci.querySelector('.control-inline-detail');
+                        if (wrapper) {
+                            // closing: remove detail and restore other items
+                            try { wrapper.remove(); } catch (e) {}
+                            try { ci.classList.remove('focused'); ci.classList.remove('expanded'); const container = ci.closest('.control-items'); if (container) container.classList.remove('focused'); } catch (e) {}
+                            try { ci.focus(); } catch (e) {}
+                            return;
+                        }
 
                     const id = ci.id || 'control-' + (ci.dataset?.status || Math.random().toString(36).slice(2,8));
                     const name = ci.querySelector('.control-name')?.textContent || id;
@@ -424,12 +430,37 @@ class RiskDashboard {
                         if (overallRow) grid.appendChild(overallRow);
                     }
 
+                    // add grid content into wrapper
                     wrapper.appendChild(grid);
+
+                    // add a small Back button so user can exit focus mode
+                    try {
+                        const closeBtn = document.createElement('button');
+                        closeBtn.type = 'button';
+                        closeBtn.className = 'control-inline-close';
+                        closeBtn.textContent = 'Back';
+                        closeBtn.style.display = 'inline-block';
+                        closeBtn.style.marginBottom = '8px';
+                        closeBtn.addEventListener('click', () => {
+                            try { wrapper.remove(); } catch (e) {}
+                            try { ci.classList.remove('focused'); ci.classList.remove('expanded'); const container = ci.closest('.control-items'); if (container) container.classList.remove('focused'); } catch (e) {}
+                            try { ci.focus(); } catch (e) {}
+                        });
+                        wrapper.insertBefore(closeBtn, wrapper.firstChild);
+                    } catch (e) {}
 
                     // insert after the header inside the control item
                     const header = ci.querySelector('.control-header');
                     if (header && header.parentNode) header.parentNode.insertBefore(wrapper, header.nextSibling);
                     else ci.appendChild(wrapper);
+
+                    // enable focus-mode & expansion: mark item and container so CSS hides siblings and animates expansion
+                    try { ci.classList.add('focused'); ci.classList.add('expanded'); const container = ci.closest('.control-items'); if (container) container.classList.add('focused'); } catch (e) {}
+
+                    // Close on Escape for keyboard users
+                    const escHandler = (ev) => { if (ev.key === 'Escape') { try { wrapper.remove(); } catch (e) {} try { ci.classList.remove('focused'); ci.classList.remove('expanded'); const c = ci.closest('.control-items'); if (c) c.classList.remove('focused'); } catch (e) {} document.removeEventListener('keydown', escHandler); try { ci.focus(); } catch (e) {} } };
+                    document.addEventListener('keydown', escHandler);
+
                     // scroll into view slightly to reveal the panel
                     try { wrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
                 };

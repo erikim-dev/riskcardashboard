@@ -1,6 +1,5 @@
 
-/* Inline detail panel shown inside control-item when drilled */
-.control-inline-detail { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.04); border-radius: 6px; padding: 8px; margin-top: 8px; }
+.control-inline-detail { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.04); border-radius: 6px; padding: 8px; margin-top: 8px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.88rem; line-height: 1.35; color: #dbeef8; }
 .control-inline-detail table td { border-top: 1px solid rgba(255,255,255,0.03); }
 .control-inline-detail strong, .control-inline-detail b { color: #e6eef5; }
 /* prevent child elements from showing click cursor; only the container is clickable */
@@ -19,6 +18,50 @@
 .control-inline-detail::-webkit-scrollbar-thumb { background: var(--status-blue); border-radius: 8px; border: 2px solid rgba(0,0,0,0.12); box-shadow: var(--glow-blue); }
 .control-inline-detail::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--status-blue) 80%, #ffffff); box-shadow: 0 0 12px rgba(0,184,212,0.45); }
 .control-inline-detail::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 8px; }
+/* Make the expanded detail visually distinct: slightly smaller text and a different UI font */
+.control-inline-detail .control-inline-grid,
+.control-inline-detail table,
+.control-inline-detail p,
+.control-inline-detail div {
+  font-family: inherit; /* inherit the distinct font set above */
+  font-size: 0.88rem;
+  color: #dbeef8;
+}
+.control-inline-detail table td { font-size: 0.86rem; color: #cfe9f6; }
+.control-inline-detail .overall-outcome-dot { transform: scale(1.05); margin-right: 6px; }
+.control-inline-close { font-size: 0.82rem; padding: 6px 8px; }
+/* Focus mode: when a single control item is opened, hide other control items to focus the user
+  The `.control-items` container receives `.focused` and the opened `.control-item` receives `.focused` */
+.control-items.focused .control-item { display: none; opacity: 0; pointer-events: none; transform: translateX(6px); transition: opacity var(--anim-fast) var(--anim-ease), transform var(--anim-fast) var(--anim-ease); }
+.control-items.focused .control-item.focused { display: block; opacity: 1; pointer-events: auto; transform: none; }
+
+/* Also hide compact management heading and separator inside the control-items container when focused */
+.control-items.focused .control-environment.compact,
+.control-items.focused .control-separator { display: none; opacity: 0; pointer-events: none; }
+
+/* Expand animation for the selected item: slight scale and stronger shadow while focused/expanded */
+.control-item { transition: transform var(--anim-medium) var(--anim-ease), box-shadow var(--anim-medium) var(--anim-ease), padding var(--anim-fast) var(--anim-ease); }
+.control-item.expanded { transform: scale(1.035); box-shadow: var(--shadow-lg); z-index: 60; }
+
+/* When focused, make the title slightly more prominent and reduce the size/contrast of supporting text */
+.control-item.focused .control-name { font-size: 1.02rem; font-weight: 700; color: #ffffff; }
+.control-item.focused .control-status { font-size: 0.80rem; color: #c6e6f0; }
+.control-item.focused .status-indicator { transform: translateY(-2px); }
+
+/* Close/back button inside the inline detail - make it clearly visible */
+.control-inline-close { appearance: none; -webkit-appearance: none; border: none; background: var(--status-blue); color: #001218; padding: 6px 8px; border-radius: 8px; cursor: pointer; font-weight: 700; margin-bottom: 8px; box-shadow: 0 6px 18px rgba(0,184,212,0.12), var(--glow-blue); display: inline-block; font-size: 0.78rem; }
+.control-inline-close:focus { outline: 3px solid rgba(0,184,212,0.12); outline-offset: 2px; }
+.control-inline-close:hover { filter: brightness(0.95); }
+.control-inline-close:active { transform: translateY(1px); }
+
+/* Reduce font-size for inline detail content even further to distinguish it from titles */
+.control-item.focused .control-inline-detail { font-size: 0.86rem; color: #cfe9f6; }
+.control-item.focused .control-inline-detail table td { font-size: 0.82rem; color: #c8e6f4; }
+
+/* Small view tweaks: make Back button full-width on narrow screens for easy touch target */
+@media (max-width: 520px) {
+  .control-inline-close { display: block; width: 100%; }
+}
 :root {
   /* ABSA maroon theme */
   --absa-red: #7A001F; /* primary maroon */

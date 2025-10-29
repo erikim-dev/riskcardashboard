@@ -81,7 +81,7 @@
       "DWB Overdue Threshold": "<10% - Target; 10-15% - Trigger; >15% - Risk",
       "DWB Overdue Outcome": "Target (5%)",
       "outcome": "At Target",
-      "Overall Outcome": "At Target"
+      "Overall Outcome": "At Trigger"
     },
     "abs-control": {
       "measurement": "Control Processes Metrics",      
