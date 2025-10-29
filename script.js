@@ -295,6 +295,28 @@ class RiskDashboard {
     wireControlItemPopups() {
         try {
             const data = this.data || {};
+            
+            // Handler to close expanded items
+            const closeExpandedItems = (excludeItem) => {
+                document.querySelectorAll('.control-item.expanded').forEach(item => {
+                    if (item !== excludeItem) {
+                        const wrapper = item.querySelector('.control-inline-detail');
+                        if (wrapper) wrapper.remove();
+                        item.classList.remove('focused', 'expanded');
+                        const container = item.closest('.control-items');
+                        if (container) container.classList.remove('focused');
+                    }
+                });
+            };
+
+            // Add document click listener for outside clicks
+            document.addEventListener('click', (e) => {
+                const clickedControlItem = e.target.closest('.control-item');
+                if (!clickedControlItem) {
+                    closeExpandedItems();
+                }
+            });
+
             document.querySelectorAll('.control-item').forEach(ci => {
                 ci.classList.add('clickable');
                 // remove any existing inline detail to avoid duplicates
@@ -469,6 +491,7 @@ class RiskDashboard {
                     // ensure clicks on child anchors/buttons don't double-toggle
                     if (ev.target && (ev.target.closest('a') || ev.target.closest('button'))) return;
                     ev.preventDefault && ev.preventDefault();
+                    ev.stopPropagation(); // Prevent the document click handler from firing
                     // Before toggling, check whether the panel is already open
                     const existing = ci.querySelector('.control-inline-detail');
                     if (existing) {
