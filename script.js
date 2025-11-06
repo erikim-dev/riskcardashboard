@@ -227,7 +227,8 @@ class RiskDashboard {
             // Dimming/powered-off behavior removed: no global dim is applied by default.
             // Wire small auxiliary UI elements (service card) so they are interactive
             try { this.wireServiceCard(); } catch (e) { /* ignore */ }
-            try { this.wirePercentHover(); } catch (e) { /* ignore */ }
+                try { this.wirePercentHover(); } catch (e) { /* ignore */ }
+                try { this.wireGaugeHover(); } catch (e) { /* ignore */ }
             // Inline dim application removed to allow external/alternate dim rules
             // try { this._applyInlineDim(); } catch (e) { /* ignore */ }
             this.attachFileLoader();
@@ -852,6 +853,76 @@ class RiskDashboard {
             el.addEventListener('blur', hide);
 
         } catch (e) { console.warn('wirePercentHover failed', e); }
+    }
+
+    // Show a small data-driven tooltip when hovering the #gauge-dynamic-value SVG text
+    wireGaugeHover() {
+        try {
+            const ensureStyle = () => {
+                if (document.getElementById('srt-tooltip-style')) return;
+                const css = `
+                .srt-tooltip{position:fixed;z-index:12000;min-width:180px;max-width:320px;padding:8px 10px;background:rgba(10,14,20,0.95);color:#fff;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,0.5);font-family:Inter,system-ui,Arial,sans-serif;font-size:13px;line-height:1.2;opacity:0;visibility:hidden;transition:opacity 160ms ease,transform 160ms ease;transform:translateY(6px);pointer-events:none}
+                .srt-tooltip.visible{opacity:1;visibility:visible;transform:translateY(0)}
+                .srt-tooltip .srt-title{font-weight:400;margin-bottom:6px}
+                .srt-tooltip .srt-list{margin:0;padding-left:18px}
+                .srt-tooltip .srt-list li{font-style:italic;margin:3px 0}
+                `;
+                const st = document.createElement('style'); st.id = 'srt-tooltip-style'; st.textContent = css; document.head.appendChild(st);
+            };
+            ensureStyle();
+
+            const svgRoot = this.carDashboardSVG;
+            let el = null;
+            if (svgRoot && typeof svgRoot.getElementById === 'function') el = svgRoot.getElementById('gauge-dynamic-value') || svgRoot.querySelector('#gauge-dynamic-value');
+            if (!el) el = document.getElementById('gauge-dynamic-value');
+            if (!el) return;
+
+            // create tooltip container
+            let tip = document.getElementById('gauge-tooltip');
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.id = 'gauge-tooltip';
+                tip.className = 'srt-tooltip';
+                tip.setAttribute('role','dialog');
+                tip.setAttribute('aria-hidden','true');
+                document.body.appendChild(tip);
+            }
+
+            const escapeHtml = (s) => String(s).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]);
+
+            const populate = () => {
+                const details = (this.data && this.data.gaugeSrtDetails) ? this.data.gaugeSrtDetails : { title: "SRTS With Unmeasured KRI's", items: ['Credit Risk','Legal Risk','Tax Risk'] };
+                const title = escapeHtml(details.title || "SRTS With Unmeasured KRI's");
+                const items = (details.items && details.items.length) ? details.items : [];
+                const list = items.map(it => `<li>${escapeHtml(it)}</li>`).join('');
+                tip.innerHTML = `<div class="srt-title">${title}</div><ul class="srt-list">${list}</ul>`;
+            };
+
+            const position = () => {
+                try {
+                    const r = el.getBoundingClientRect();
+                    tip.classList.remove('visible'); tip.style.left = '-9999px'; tip.style.top = '-9999px';
+                    populate();
+                    const tr = tip.getBoundingClientRect();
+                    let left = Math.round(r.left + (r.width / 2) - (tr.width / 2));
+                    let top = Math.round(r.top - tr.height - 8);
+                    if (top < 8) top = Math.round(r.bottom + 8);
+                    if (left < 8) left = 8;
+                    if (left + tr.width > window.innerWidth - 8) left = window.innerWidth - tr.width - 8;
+                    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+                } catch (e) { /* ignore positioning errors */ }
+            };
+
+            const show = (ev) => { try { populate(); position(); tip.classList.add('visible'); tip.setAttribute('aria-hidden','false'); } catch (e) {} };
+            const hide = () => { try { tip.classList.remove('visible'); tip.setAttribute('aria-hidden','true'); } catch (e) {} };
+
+            el.addEventListener('mouseenter', show);
+            el.addEventListener('mousemove', position);
+            el.addEventListener('mouseleave', hide);
+            el.addEventListener('focus', show);
+            el.addEventListener('blur', hide);
+
+        } catch (e) { console.warn('wireGaugeHover failed', e); }
     }
 
     // Open a modal and load service-card.html into it (simple, reversible)

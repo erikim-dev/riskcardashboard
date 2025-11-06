@@ -196,6 +196,15 @@
     ]
   }
 
+  ,"gaugeSrtDetails": {
+    "title": "SRTS With Unmeasured KRI's",
+    "items": [
+      "Credit Risk",
+      "Legal Risk",
+      "Tax Risk"
+    ]
+  }
+
 }
 
 
