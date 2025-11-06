@@ -1,6 +1,8 @@
 // Remove any legacy overlay elements on page load to guarantee no duplicates
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.engine-start-overlay, .engine-overlay-button, .partial-dim-overlay, .powered-off-overlay, .powered-off-start-button').forEach(el => el.remove());
+    // Remove various overlay elements that may have been injected previously,
+    // including any rc-click-overlay rectangles (created by older wiring code).
+    document.querySelectorAll('.engine-start-overlay, .engine-overlay-button, .partial-dim-overlay, .powered-off-overlay, .powered-off-start-button, .rc-click-overlay, #rc-click-overlays, [id^="rc-click-overlay-"]').forEach(el => el.remove());
     // On load, ensure the small '#last-updated' element remains available for data-driven updates
     // and start a separate live clock for the dashboard footer '#main-last-updated'.
     var lastUpdated = document.getElementById('last-updated');
@@ -225,6 +227,7 @@ class RiskDashboard {
             // Dimming/powered-off behavior removed: no global dim is applied by default.
             // Wire small auxiliary UI elements (service card) so they are interactive
             try { this.wireServiceCard(); } catch (e) { /* ignore */ }
+            try { this.wirePercentHover(); } catch (e) { /* ignore */ }
             // Inline dim application removed to allow external/alternate dim rules
             // try { this._applyInlineDim(); } catch (e) { /* ignore */ }
             this.attachFileLoader();
@@ -302,9 +305,23 @@ class RiskDashboard {
                     if (item !== excludeItem) {
                         const wrapper = item.querySelector('.control-inline-detail');
                         if (wrapper) wrapper.remove();
-                        item.classList.remove('focused', 'expanded');
+                        item.classList.remove('focused', 'expanded', 'control-open');
                         const container = item.closest('.control-items');
                         if (container) container.classList.remove('focused');
+                        
+                        // Reset the status indicator
+                        const ind = item.querySelector('.status-indicator');
+                        if (ind) {
+                            ind.style.width = '';
+                            ind.style.height = '';
+                            ind.style.boxShadow = '';
+                            // Restore original status if stored
+                            const orig = item.getAttribute('data-status-original');
+                            if (orig) {
+                                item.setAttribute('data-status', orig);
+                                item.removeAttribute('data-status-original');
+                            }
+                        }
                     }
                 });
             };
@@ -355,8 +372,9 @@ class RiskDashboard {
                     wrapper = document.createElement('div');
                     wrapper.className = 'control-inline-detail';
                     wrapper.setAttribute('role','region');
-                    wrapper.style.marginTop = '8px';
-                    wrapper.style.padding = '8px';
+                    // make the inline detail more compact so content shifts up (tighter to header)
+                    wrapper.style.marginTop = '0px';
+                    wrapper.style.padding = '6px 6px 6px 6px';
                     wrapper.style.background = 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))';
                     wrapper.style.border = '1px solid rgba(255,255,255,0.04)';
                     wrapper.style.borderRadius = '6px';
@@ -365,7 +383,8 @@ class RiskDashboard {
                     grid.className = 'control-inline-grid';
                     grid.style.display = 'grid';
                     grid.style.gridTemplateColumns = '1fr';
-                    grid.style.gap = '6px';
+                    // tighten gaps for a more compact panel
+                    grid.style.gap = '2px';
 
                     const mkRow = (label, val, isOutcome=false) => {
                         const row = document.createElement('div');
@@ -461,12 +480,41 @@ class RiskDashboard {
                         closeBtn.type = 'button';
                         closeBtn.className = 'control-inline-close';
                         closeBtn.textContent = 'Back';
+                        // squeeze the Back button: smaller padding, font and tighter bottom spacing
+                        closeBtn.style.padding = '3px 6px';
+                        closeBtn.style.fontSize = '0.68rem';
+                        closeBtn.style.borderRadius = '6px';
                         closeBtn.style.display = 'inline-block';
-                        closeBtn.style.marginBottom = '8px';
+                        closeBtn.style.marginBottom = '4px';
+                        closeBtn.style.lineHeight = '1';
+                        // ensure the button is clickable even if global rules reduce cursor/pointer
+                        closeBtn.style.cursor = 'pointer';
+                        closeBtn.style.pointerEvents = 'auto';
+                        closeBtn.style.position = 'relative';
+                        // keep it above nearby overlays/animations
+                        closeBtn.style.zIndex = '90';
                         closeBtn.addEventListener('click', () => {
-                            try { wrapper.remove(); } catch (e) {}
-                            try { ci.classList.remove('focused'); ci.classList.remove('expanded'); const container = ci.closest('.control-items'); if (container) container.classList.remove('focused'); } catch (e) {}
-                            try { ci.focus(); } catch (e) {}
+                            try {
+                                wrapper.remove();
+                                ci.classList.remove('focused', 'expanded', 'control-open');
+                                const container = ci.closest('.control-items');
+                                if (container) container.classList.remove('focused');
+
+                                // Reset the status indicator
+                                const ind = ci.querySelector('.status-indicator');
+                                if (ind) {
+                                    ind.style.width = '';
+                                    ind.style.height = '';
+                                    ind.style.boxShadow = '';
+                                    // Restore original status if stored
+                                    const orig = ci.getAttribute('data-status-original');
+                                    if (orig) {
+                                        ci.setAttribute('data-status', orig);
+                                        ci.removeAttribute('data-status-original');
+                                    }
+                                }
+                                ci.focus();
+                            } catch (e) {}
                         });
                         wrapper.insertBefore(closeBtn, wrapper.firstChild);
                     } catch (e) {}
@@ -480,7 +528,32 @@ class RiskDashboard {
                     try { ci.classList.add('focused'); ci.classList.add('expanded'); const container = ci.closest('.control-items'); if (container) container.classList.add('focused'); } catch (e) {}
 
                     // Close on Escape for keyboard users
-                    const escHandler = (ev) => { if (ev.key === 'Escape') { try { wrapper.remove(); } catch (e) {} try { ci.classList.remove('focused'); ci.classList.remove('expanded'); const c = ci.closest('.control-items'); if (c) c.classList.remove('focused'); } catch (e) {} document.removeEventListener('keydown', escHandler); try { ci.focus(); } catch (e) {} } };
+                    const escHandler = (ev) => { 
+                        if (ev.key === 'Escape') { 
+                            try { 
+                                wrapper.remove();
+                                ci.classList.remove('focused', 'expanded', 'control-open');
+                                const c = ci.closest('.control-items');
+                                if (c) c.classList.remove('focused');
+                                
+                                // Reset the status indicator
+                                const ind = ci.querySelector('.status-indicator');
+                                if (ind) {
+                                    ind.style.width = '';
+                                    ind.style.height = '';
+                                    ind.style.boxShadow = '';
+                                    // Restore original status if stored
+                                    const orig = ci.getAttribute('data-status-original');
+                                    if (orig) {
+                                        ci.setAttribute('data-status', orig);
+                                        ci.removeAttribute('data-status-original');
+                                    }
+                                }
+                                document.removeEventListener('keydown', escHandler);
+                                ci.focus();
+                            } catch (e) {} 
+                        } 
+                    };
                     document.addEventListener('keydown', escHandler);
 
                     // scroll into view slightly to reveal the panel
@@ -695,6 +768,90 @@ class RiskDashboard {
         } catch (e) {
             console.error('wireServiceCard failed:', e);
         }
+    }
+
+    // Show a small data-driven tooltip when hovering the #percent-dynamic-value SVG text
+    wirePercentHover() {
+        try {
+            const ensureStyle = () => {
+                if (document.getElementById('srt-tooltip-style')) return;
+                const css = `
+                .srt-tooltip{position:fixed;z-index:12000;min-width:180px;max-width:320px;padding:8px 10px;background:rgba(10,14,20,0.95);color:#fff;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,0.5);font-family:Inter,system-ui,Arial,sans-serif;font-size:13px;line-height:1.2;opacity:0;visibility:hidden;transition:opacity 160ms ease,transform 160ms ease;transform:translateY(6px);pointer-events:none}
+                .srt-tooltip.visible{opacity:1;visibility:visible;transform:translateY(0)}
+                .srt-tooltip .srt-title{font-weight:400;margin-bottom:6px}
+                .srt-tooltip .srt-list{margin:0;padding-left:18px}
+                .srt-tooltip .srt-list li{font-style:italic;margin:3px 0}
+                `;
+                const st = document.createElement('style'); st.id = 'srt-tooltip-style'; st.textContent = css; document.head.appendChild(st);
+            };
+            ensureStyle();
+
+            const svgRoot = this.carDashboardSVG;
+            let el = null;
+            if (svgRoot && typeof svgRoot.getElementById === 'function') el = svgRoot.getElementById('percent-dynamic-value') || svgRoot.querySelector('#percent-dynamic-value');
+            if (!el) el = document.getElementById('percent-dynamic-value');
+            if (!el) return;
+
+            // create tooltip container
+            let tip = document.getElementById('srt-tooltip');
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.id = 'srt-tooltip';
+                tip.className = 'srt-tooltip';
+                tip.setAttribute('role','dialog');
+                tip.setAttribute('aria-hidden','true');
+                document.body.appendChild(tip);
+            }
+
+            const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]);
+
+            const populate = () => {
+                const details = (this.data && this.data.srtDetails) ? this.data.srtDetails : { title: 'SRTS NOT AT-TARGET', items: ['Data Records and Management Risk','Technology Risk','Information Security Cyber Risk','Financial Crime'] };
+                const title = escapeHtml(details.title || 'SRTS NOT AT-TARGET');
+                const items = (details.items && details.items.length) ? details.items : [];
+                const list = items.map(it => `<li>${escapeHtml(it)}</li>`).join('');
+                tip.innerHTML = `<div class="srt-title">${title}</div><ul class="srt-list">${list}</ul>`;
+            };
+
+            const position = () => {
+                try {
+                    const r = el.getBoundingClientRect();
+                    // ensure tooltip has content/layout measured
+                    tip.classList.remove('visible'); tip.style.left = '-9999px'; tip.style.top = '-9999px';
+                    populate();
+                    const tr = tip.getBoundingClientRect();
+                    // prefer above the element
+                    let left = Math.round(r.left + (r.width / 2) - (tr.width / 2));
+                    let top = Math.round(r.top - tr.height - 8);
+                    if (top < 8) top = Math.round(r.bottom + 8);
+                    if (left < 8) left = 8;
+                    if (left + tr.width > window.innerWidth - 8) left = window.innerWidth - tr.width - 8;
+                    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+                } catch (e) { /* ignore positioning errors */ }
+            };
+
+            let visible = false;
+            const show = (ev) => {
+                try {
+                    populate();
+                    position();
+                    tip.classList.add('visible');
+                    tip.setAttribute('aria-hidden','false');
+                    visible = true;
+                } catch (e) {}
+            };
+            const hide = () => {
+                try { tip.classList.remove('visible'); tip.setAttribute('aria-hidden','true'); visible = false; } catch (e) {}
+            };
+
+            // wire events
+            el.addEventListener('mouseenter', show);
+            el.addEventListener('mousemove', position);
+            el.addEventListener('mouseleave', hide);
+            el.addEventListener('focus', show);
+            el.addEventListener('blur', hide);
+
+        } catch (e) { console.warn('wirePercentHover failed', e); }
     }
 
     // Open a modal and load service-card.html into it (simple, reversible)
@@ -1126,6 +1283,14 @@ class RiskDashboard {
             } catch (e) { console.warn('ensure mappings failed', e); }
             this.validateSvgMappings();
             setTimeout(() => this.updateSVGWarningLights(), 100);
+            // Wire clicks on SVG warning lights to open matching right-pane control items
+            setTimeout(() => this.wireSvgWarningLightClicks && this.wireSvgWarningLightClicks(), 150);
+            // Create tight, invisible overlay for specific warning lights (one-off)
+            // Create invisible clickable overlays for all warning-light groups after SVG loads
+            setTimeout(() => { try { if (typeof this.createOverlaysForAllWarningLights === 'function') this.createOverlaysForAllWarningLights(6, 6); else {
+                        // fallback: explicitly ensure bulb and esp overlays exist
+                        try { if (this.createInsetRoundedOverlay) { this.createInsetRoundedOverlay('bulb-warning-light', 6, 6); this.createInsetRoundedOverlay('esp-warning-light', 6, 6); } else if (this.createExactOverlayForId) { this.createExactOverlayForId('bulb-warning-light', 6); this.createExactOverlayForId('esp-warning-light', 6); } } catch (e) {}
+                    } } catch (e) {} }, 220);
             // Consolidate repeated post-SVG setup calls
             this._safeCalls([
                 [() => this.buildSpeedTickMap(), 'buildSpeedTickMap failed'],
@@ -1197,6 +1362,297 @@ class RiskDashboard {
             console.error('Failed to load SVG', err);
             this.createSVGPlaceholder();
         }
+    }
+
+    // Make SVG warning lights clickable: clicking a light opens the matching right-pane control item
+    wireSvgWarningLightClicks() {
+        try {
+            if (!this.carDashboardSVG) return;
+            const mappings = (this.data && this.data.svgElementMappings) || this.defaultSvgElementMappings || {};
+            // Build reverse lookup from defaultSvgElementMappings -> controlItemMappings when possible
+            const reverseDefault = {};
+            try {
+                Object.entries(this.defaultSvgElementMappings || {}).forEach(([k,v]) => { reverseDefault[v] = k; });
+            } catch (e) {}
+
+            Object.entries(mappings).forEach(([sysKey, svgId]) => {
+                try {
+                    if (!svgId) return;
+                    // Some mappings may include modifiers like "id|state" or similar; take before any delimiter
+                    const cleanId = String(svgId || '').split(/[|:]/)[0];
+                    let node = null;
+                    try { node = this.carDashboardSVG.getElementById(cleanId); } catch (e) { node = null; }
+                    if (!node) node = this.carDashboardSVG.querySelector('#' + cleanId);
+                    if (!node) return;
+
+                    // Make it clearly interactive and ensure it can receive pointer events
+                    try { node.style.cursor = 'pointer'; node.style.pointerEvents = 'auto'; node.setAttribute && node.setAttribute('pointer-events', 'auto'); } catch (e) {}
+
+                    // Click handler: determine which control-item to open and trigger its click
+                    const handler = (ev) => {
+                        try { ev.stopPropagation(); } catch (e) {}
+                        // Find control key: prefer mapping by system key, else reverse-default lookup
+                        let controlKey = sysKey;
+                        if (!this.controlItemMappings[controlKey]) {
+                            const possible = reverseDefault[cleanId];
+                            if (possible) controlKey = possible;
+                        }
+                        let controlId = this.controlItemMappings[controlKey];
+                        // fallback: guess by svg id name -> replace '-warning-light' with '-control'
+                        if (!controlId) {
+                            const guessed = cleanId.replace(/-warning-light$/i, '-control');
+                            if (document.getElementById(guessed)) controlId = guessed;
+                        }
+
+                        // Special-case: some SVG ids use different naming (e.g. 'Traction-Control-Warning-Light')
+                        // Map these to the 'brake-control' right-pane item which represents Structure/Traction
+                        if (!controlId && /traction/i.test(cleanId)) {
+                            if (document.getElementById('brake-control')) controlId = 'brake-control';
+                        }
+
+                        if (controlId) {
+                            const el = document.getElementById(controlId);
+                            if (el) {
+                                try { el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
+                                try { el.click(); } catch (e) { /* last resort: dispatch event */
+                                    try { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); } catch (ee) {}
+                                }
+                            }
+                        }
+                    };
+
+                    // Attach handler (use onclick to avoid duplicate listeners on repeated wiring)
+                    try { node.onclick = handler; } catch (e) { try { node.addEventListener('click', handler); } catch (ee) {} }
+                } catch (e) { /* ignore per-light errors */ }
+            });
+            // Additionally, wire any SVG elements that look related but aren't in mappings (e.g. Traction-Control-Warning-Light)
+            try {
+                const all = Array.from(this.carDashboardSVG.querySelectorAll('[id]'));
+                all.forEach(node => {
+                    try {
+                        const nid = String(node.id || '');
+                        if (!nid) return;
+                        // If this id contains 'traction' or matches the Traction-Control-Warning-Light pattern,
+                        // but wasn't part of the configured mappings, map it to the brake-control item.
+                        if (/traction/i.test(nid)) {
+                            // ensure clickable
+                            try { node.style.cursor = 'pointer'; node.style.pointerEvents = 'auto'; node.setAttribute && node.setAttribute('pointer-events', 'auto'); } catch (e) {}
+                            const h = (ev) => {
+                                try { ev && ev.stopPropagation && ev.stopPropagation(); } catch (e) {}
+                                const target = document.getElementById('brake-control');
+                                if (target) {
+                                    try { target.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
+                                    try { target.click(); } catch (e) { try { target.dispatchEvent(new MouseEvent('click', { bubbles: true })); } catch (ee) {} }
+                                }
+                            };
+                            try { node.onclick = h; } catch (e) { try { node.addEventListener('click', h); } catch (ee) {} }
+                        }
+                    } catch (e) {}
+                });
+            } catch (e) {}
+        } catch (err) { console.warn('wireSvgWarningLightClicks failed', err); }
+    }
+
+    // Compute a tight bounding box for `node` transformed into the root SVG user-space.
+    // Collects bbox corners of graphics descendants and maps them via CTM to root coords.
+    computeTransformedBBox(node, svgRoot) {
+        try {
+            if (!node || !svgRoot) return null;
+            const svg = svgRoot;
+            const pts = [];
+            const collect = (el) => {
+                try {
+                    const bb = el.getBBox();
+                    const ctm = el.getCTM();
+                    if (!ctm) return;
+                    const corners = [
+                        { x: bb.x, y: bb.y },
+                        { x: bb.x + bb.width, y: bb.y },
+                        { x: bb.x, y: bb.y + bb.height },
+                        { x: bb.x + bb.width, y: bb.y + bb.height }
+                    ];
+                    corners.forEach(p => {
+                        try {
+                            const sp = svg.createSVGPoint(); sp.x = p.x; sp.y = p.y;
+                            const t = sp.matrixTransform(ctm);
+                            pts.push({ x: t.x, y: t.y });
+                        } catch (e) {}
+                    });
+                } catch (e) { /* ignore */ }
+            };
+
+            // include node if graphic and all descendant graphics
+            const sel = 'path,circle,rect,ellipse,line,polyline,polygon,image,text';
+            const list = Array.from(node.querySelectorAll(sel));
+            try { const t = (node.tagName || '').toLowerCase(); if (['path','circle','rect','ellipse','line','polyline','polygon','image','text'].includes(t)) list.unshift(node); } catch (e) {}
+            list.forEach(collect);
+            if (!pts.length) return null;
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            pts.forEach(p => { if (p.x < minX) minX = p.x; if (p.y < minY) minY = p.y; if (p.x > maxX) maxX = p.x; if (p.y > maxY) maxY = p.y; });
+            return { x: minX, y: minY, width: Math.max(0, maxX - minX), height: Math.max(0, maxY - minY) };
+        } catch (e) { return null; }
+    }
+
+    // Create an invisible but clickable overlay rect for the SVG group with given id.
+    // pad is in SVG user units and expands the tight bbox on all sides.
+    createExactOverlayForId(svgId, pad = 0) {
+        try {
+            if (!this.carDashboardSVG || !svgId) return null;
+            const svg = this.carDashboardSVG;
+            // resolve element (case-insensitive fallback)
+            let node = svg.getElementById(svgId) || svg.querySelector('#' + svgId) || Array.from(svg.querySelectorAll('[id]')).find(n => (n.id || '').toLowerCase() === String(svgId).toLowerCase());
+            if (!node) return null;
+
+            // compute tight bbox in root user-space
+            const bbox = this.computeTransformedBBox(node, svg);
+            if (!bbox) return null;
+
+            // create overlays group if missing
+            let g = svg.getElementById('exact-warning-overlays') || svg.querySelector('#exact-warning-overlays');
+            if (!g) { g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.setAttribute('id', 'exact-warning-overlays'); svg.appendChild(g); }
+
+            const oid = 'exact-overlay-' + String(svgId).replace(/[^a-z0-9\-_]/gi, '') ;
+            // remove existing overlay for id if present
+            try { const prev = svg.getElementById(oid); if (prev) prev.remove(); } catch (e) {}
+
+            const x = bbox.x - pad; const y = bbox.y - pad; const w = Math.max(0, bbox.width + pad * 2); const h = Math.max(0, bbox.height + pad * 2);
+            if (w <= 0 || h <= 0) return null;
+
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('id', oid);
+            rect.setAttribute('x', String(Number(x).toFixed(2)));
+            rect.setAttribute('y', String(Number(y).toFixed(2)));
+            rect.setAttribute('width', String(Number(w).toFixed(2)));
+            rect.setAttribute('height', String(Number(h).toFixed(2)));
+            // Make fully invisible but still hit-testable: use no fill/stroke and ensure pointer-events capture
+            rect.setAttribute('fill', 'none');
+            rect.setAttribute('fill-opacity', '0');
+            rect.setAttribute('stroke', 'none');
+            rect.setAttribute('opacity', '0');
+            rect.setAttribute('pointer-events', 'all');
+            rect.style.cursor = 'pointer';
+            // clicking the overlay should behave like clicking the underlying node
+            const handler = (ev) => { try { ev && ev.stopPropagation && ev.stopPropagation(); try { node.click(); } catch (e) { node.dispatchEvent && node.dispatchEvent(new MouseEvent('click', { bubbles: true })); } } catch (e) {} };
+            try { rect.onclick = handler; } catch (e) { try { rect.addEventListener('click', handler); } catch (ee) {} }
+            // ensure group captures pointer events for children
+            g.setAttribute('pointer-events', 'auto');
+            g.appendChild(rect);
+            return rect;
+        } catch (e) { return null; }
+    }
+
+    // Create an invisible rounded-rect overlay inside the warning-light group itself.
+    // This uses the group's local bbox so the overlay inherits the group's transform
+    // and visually hugs the artwork. rx controls corner radius in user units.
+    createInsetRoundedOverlay(svgId, pad = 0, rx = 4) {
+        try {
+            if (!this.carDashboardSVG || !svgId) return null;
+            const svg = this.carDashboardSVG;
+            // find group by id (case-insensitive fallback)
+            let node = svg.getElementById(svgId) || Array.from(svg.querySelectorAll('[id]')).find(n => (n.id || '').toLowerCase() === String(svgId).toLowerCase());
+            if (!node) return null;
+
+            // compute local bbox of the group (getBBox returns in group's own coordinate space)
+            let bb;
+            try { bb = node.getBBox(); } catch (e) { bb = null; }
+            if (!bb) return null;
+
+            // Compute additional padding to include stroke extents and simple filter effects
+            let maxStroke = 0;
+            let hasFilter = false;
+            try {
+                const sel = 'path,circle,rect,ellipse,line,polyline,polygon,image,use,text';
+                const desc = Array.from(node.querySelectorAll(sel));
+                desc.forEach(el => {
+                    try {
+                        const cs = window.getComputedStyle(el);
+                        let sw = 0;
+                        if (cs && cs.strokeWidth) sw = parseFloat(cs.strokeWidth) || 0;
+                        if (!sw) {
+                            const a = el.getAttribute && (el.getAttribute('stroke-width') || el.getAttribute('stroke')); // stroke attr may be present
+                            if (a) sw = parseFloat(a) || 0;
+                        }
+                        if (sw > maxStroke) maxStroke = sw;
+                        const f = (el.getAttribute && el.getAttribute('filter')) || (cs && cs.filter && cs.filter !== 'none');
+                        if (f) hasFilter = true;
+                    } catch (e) {}
+                });
+            } catch (e) {}
+
+            const strokePad = maxStroke ? (maxStroke / 2) : 0;
+            const filterPad = hasFilter ? 4 : 0; // conservative extra for simple shadows/filters
+            const effectivePad = Math.max(0, pad || 0, strokePad, filterPad);
+            const x = bb.x - effectivePad, y = bb.y - effectivePad, w = Math.max(0, bb.width + effectivePad * 2), h = Math.max(0, bb.height + effectivePad * 2);
+            if (w <= 0 || h <= 0) return null;
+
+            // remove existing overlay inside this group if present
+            const oid = 'inset-overlay-' + String(svgId).replace(/[^a-z0-9\-_]/gi, '');
+            try { const prev = node.querySelector('#' + oid); if (prev) prev.remove(); } catch (e) {}
+
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('id', oid);
+            rect.setAttribute('x', String(Number(x).toFixed(2)));
+            rect.setAttribute('y', String(Number(y).toFixed(2)));
+            rect.setAttribute('width', String(Number(w).toFixed(2)));
+            rect.setAttribute('height', String(Number(h).toFixed(2)));
+            rect.setAttribute('rx', String(Number(rx).toFixed(2)));
+            rect.setAttribute('ry', String(Number(rx).toFixed(2)));
+            // Make fully invisible but still hit-testable: use no fill/stroke and ensure pointer-events capture
+            rect.setAttribute('fill', 'none');
+            rect.setAttribute('fill-opacity', '0');
+            rect.setAttribute('stroke', 'none');
+            rect.setAttribute('opacity', '0');
+            rect.setAttribute('pointer-events', 'all');
+            rect.style.cursor = 'pointer';
+            // attach click handler that forwards to the group
+            const handler = (ev) => { try { ev && ev.stopPropagation && ev.stopPropagation(); try { node.click(); } catch (e) { node.dispatchEvent && node.dispatchEvent(new MouseEvent('click', { bubbles: true })); } } catch (e) {} };
+            try { rect.onclick = handler; } catch (e) { try { rect.addEventListener('click', handler); } catch (ee) {} }
+
+            // insert the rect as the first child so it sits under any decorative overlays within the group
+            try { node.insertBefore(rect, node.firstChild); } catch (e) { node.appendChild(rect); }
+            return rect;
+        } catch (e) { return null; }
+    }
+
+    // Create inset rounded overlays for every warning-light group in the loaded SVG.
+    // pad and rx are in SVG user units. Overlays are invisible but capture pointer events.
+    createOverlaysForAllWarningLights(pad = 6, rx = 6) {
+        try {
+            if (!this.carDashboardSVG) return 0;
+            const svg = this.carDashboardSVG;
+            // collect candidate ids that look like warning lights (case-insensitive)
+            const all = Array.from(svg.querySelectorAll('[id]')).map(n => n.id).filter(Boolean);
+            const seen = new Set();
+            const candidates = [];
+            all.forEach(id => {
+                try {
+                    if (/warning-?light$/i.test(id) || /warning-?light/i.test(id) || /-warning-/i.test(id) || /warning/i.test(id)) {
+                        const norm = id.toString(); if (!seen.has(norm)) { seen.add(norm); candidates.push(norm); }
+                    }
+                } catch (e) {}
+            });
+
+            // also include any explicit mappings from data.svgElementMappings
+            try {
+                const maps = (this.data && this.data.svgElementMappings) || {};
+                Object.values(maps).forEach(v => { try { if (v && !seen.has(v)) { seen.add(v); candidates.push(v); } } catch (e) {} });
+            } catch (e) {}
+
+            let created = 0;
+            candidates.forEach(id => {
+                try {
+                    // prefer inset overlay inside group for accurate transform inheritance
+                    if (this.createInsetRoundedOverlay) {
+                        const r = this.createInsetRoundedOverlay(id, pad, rx);
+                        if (r) created++;
+                    } else if (this.createExactOverlayForId) {
+                        const r = this.createExactOverlayForId(id, pad);
+                        if (r) created++;
+                    }
+                } catch (e) {}
+            });
+            return created;
+        } catch (e) { return 0; }
     }
 
     // Build a map of speed numeric -> angle (degrees) by locating tick rects in the SVG.

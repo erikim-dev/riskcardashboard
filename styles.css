@@ -4,6 +4,8 @@
 .control-inline-detail strong, .control-inline-detail b { color: #e6eef5; }
 /* prevent child elements from showing click cursor; only the container is clickable */
 .control-inline-detail * { cursor: default !important; }
+/* Ensure the inline detail's Back button shows a pointer (hand) despite the global rule above */
+.control-inline-detail .control-inline-close { cursor: pointer !important; pointer-events: auto !important; }
 /* When the inline detail is long, constrain its height and allow scrolling */
 .control-inline-detail {
   max-height: 220px; /* reasonable default for the right-panel */

@@ -1,12 +1,12 @@
 {
   "issuesOpenValue": 255,
-  "netLossValue": "82.64 M",
-  "MTD Risk Events": "24",
-  "ytdRiskEvents": 253,
-  "dynamicValue285": "43.49%",
-  "dynamicValue287": 5,
-  "SRT": "15%",
-  "KRIs": "11.08%",
+  "netLossValue": "90.75 M",
+  "MTD Risk Events": "2",
+  "ytdRiskEvents": 266,
+  "dynamicValue285": "47.76%",
+  "dynamicValue287": 26,
+  "SRT": "68%",
+  "KRIs": "6.30%",
   "KRIsStatus": "not determined",
   "alerts": [
     {
@@ -19,7 +19,7 @@
     "changeManagement": "at-target",
     "controlEnvironment": "at-trigger",
     "controlWeaknesses": "at-trigger",
-    "managementInfo": "at-trigger",
+    "managementInfo": "at-target",
     "controlProcesses": "at-target",
     "bcmResilience": "at-target",
     "appetiteConsumption": "at-target",
@@ -53,7 +53,7 @@
     "engine-control": {
       "outcome": "At trigger",
       "Appetite Consumption Threshold": "KES <=130m - Target; KES >130m<=190m - Trigger; KES >190m - Risk",
-      "Appetite Consumption Outcome": "At Target (82.64M)",
+      "Appetite Consumption Outcome": "At Target (90.75M)",
       "SRTs Threshold": "0-10% - Target; >10% <50% - Target; >=50% - Risk",
       "SRTs Outcome": "Trigger (15%)"
     },
@@ -99,11 +99,11 @@
       "measurement": "Data quality score",
       "threshold": ">= 90%",
       "% of KIs assessed on time": "100% - Target; >=90%; <90% - Risk",
-      "% of KIs assessed on time Outcome": "Risk (79%)",
+      "% of KIs assessed on time Outcome": "Trigger (96%)",
       "Risk Types without KIs on ORMS": "0 - Target; N/A - Trigger; >0 - Risk",
       "Risk Types without KIs on ORMS Outcome": "Target (0)",
       "outcome": "At-Target",
-      "Overall Outcome": "At Trigger"
+      "Overall Outcome": "At Target"
     },
     "brake-control": {
       "measurement": "Traction control failures",
@@ -184,6 +184,16 @@
     },
   "metadata": {
     "lastUpdated": "2025-10-23T00:00:00Z"
+  }
+
+  ,"srtDetails": {
+    "title": "SRTS NOT AT-TARGET",
+    "items": [
+      "Data Records and Management Risk",
+      "Technology Risk",
+      "Information Security Cyber Risk",
+      "Financial Crime"
+    ]
   }
 
 }
