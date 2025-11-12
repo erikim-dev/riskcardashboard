@@ -417,6 +417,25 @@ text.percent-dynamic-value,
   color: #ffffff !important;
 }
 
+/* RPM gauge percentage text - hidden by default and when powered off */
+#percent-dynamic-value,
+#rpm-value,
+#gauge-dynamic-value,
+text.percent-dynamic-value {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Show percentage text instantly when engine is active - with hover enabled */
+body:not(.powered-off) #percent-dynamic-value,
+body:not(.powered-off) #rpm-value,
+body:not(.powered-off) #gauge-dynamic-value,
+body:not(.powered-off) text.percent-dynamic-value {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 .fuel-gauge-risk { top: 25%; left: 10%; }
 .service-card { margin: 6px 8px; padding: 4px 6px; border-radius: 8px; background: linear-gradient(90deg, rgba(0,191,255,0.05), rgba(0,191,255,0.09)); border: 1px solid rgba(0,191,255,0.12); cursor: pointer; }
 .service-card-inner { display:flex; align-items:center; justify-content:space-between; gap:4px; min-width:0; }

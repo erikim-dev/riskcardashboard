@@ -294,34 +294,40 @@
             try { if (window.dashboard && typeof window.dashboard.updateAlerts === 'function') window.dashboard.updateAlerts(); } catch (e) {}
         }
 
+        // Helper function to close service card completely - CENTRALIZED
+        function closeServiceCard() {
+            var controlEnv = document.querySelector('.control-environment');
+            if (controlEnv && controlEnv.classList.contains('flipped')) {
+                controlEnv.classList.remove('flipped');
+                // Also reset service-panel visibility
+                var servicePanel = document.querySelector('.service-panel');
+                if (servicePanel) {
+                    servicePanel.style.visibility = 'hidden';
+                    servicePanel.style.opacity = '0';
+                }
+                // Reset h4 title back to default
+                var h4 = controlEnv.querySelector('h4');
+                if (h4) {
+                    var originalTitle = controlEnv.dataset._originalTitle;
+                    h4.textContent = originalTitle || 'Control Environment Status';
+                }
+                // Reset service-card action button
+                var actionEl = document.querySelector('.service-card-action');
+                if (actionEl) {
+                    actionEl.classList.remove('service-card-return');
+                    actionEl.textContent = 'Open Service Card Status';
+                    actionEl.onclick = null;
+                }
+                return true; // Service card was open and now closed
+            }
+            return false; // Service card was not open
+        }
+
         // Click to toggle control-items in the right panel
         document.querySelectorAll('.control-item').forEach(function(item) {
             item.addEventListener('click', function(e) {
                 // Close service card when a control-item is clicked
-                // The service card is opened by adding 'flipped' class to .control-environment
-                var controlEnv = document.querySelector('.control-environment');
-                if (controlEnv && controlEnv.classList.contains('flipped')) {
-                    controlEnv.classList.remove('flipped');
-                    // Also reset service-panel visibility
-                    var servicePanel = document.querySelector('.service-panel');
-                    if (servicePanel) {
-                        servicePanel.style.visibility = 'hidden';
-                        servicePanel.style.opacity = '0';
-                    }
-                    // Reset h4 title back to default
-                    var h4 = controlEnv.querySelector('h4');
-                    if (h4) {
-                        var originalTitle = controlEnv.dataset._originalTitle;
-                        h4.textContent = originalTitle || 'Control Environment Status';
-                    }
-                    // Reset service-card action button
-                    var actionEl = document.querySelector('.service-card-action');
-                    if (actionEl) {
-                        actionEl.classList.remove('service-card-return');
-                        actionEl.textContent = 'Open Service Card Status';
-                        actionEl.onclick = null;
-                    }
-                }
+                closeServiceCard();
 
                 if (item.classList.contains('expanded')) {
                     item.classList.remove('expanded');
@@ -374,56 +380,32 @@
             return null;
         }
 
-        // Why/what/outcome: Attach delegation to #car-dashboard-svg so clicking an SVG warning light
-        // focuses and expands the corresponding control-item on the right. Outcome: only that
-        // control-item remains expanded and receives focus.
-        var svgRoot = document.getElementById('car-dashboard-svg');
-        if (svgRoot) {
-            svgRoot.addEventListener('click', function(e) {
-                var target = e.target;
-                if (!target) return;
+        // Helper to handle SVG warning light clicks - used by both direct clicks and inset overlays
+        function handleSvgWarningLightClick(target) {
+            if (!target) return;
 
-                // attempt to find matching control (allow closest with id for some SVG structures)
-                var control = findControlForSvgElement(target) || (target.closest ? findControlForSvgElement(target.closest('[id]')) : null);
-                if (control) {
-                    // Close the service card if it's open by removing the 'flipped' class from control-environment
-                    var controlEnv = document.querySelector('.control-environment');
-                    if (controlEnv && controlEnv.classList.contains('flipped')) {
-                        controlEnv.classList.remove('flipped');
-                        // Also reset service-panel visibility
-                        var servicePanel = document.querySelector('.service-panel');
-                        if (servicePanel) {
-                            servicePanel.style.visibility = 'hidden';
-                            servicePanel.style.opacity = '0';
-                        }
-                        // Reset h4 title back to default
-                        var h4 = controlEnv.querySelector('h4');
-                        if (h4) {
-                            var originalTitle = controlEnv.dataset._originalTitle;
-                            h4.textContent = originalTitle || 'Control Environment Status';
-                        }
-                        // Reset service-card action button
-                        var actionEl = document.querySelector('.service-card-action');
-                        if (actionEl) {
-                            actionEl.classList.remove('service-card-return');
-                            actionEl.textContent = 'Open Service Card Status';
-                            actionEl.onclick = null;
-                        }
-                    }
+            // attempt to find matching control (allow closest with id for some SVG structures)
+            var control = findControlForSvgElement(target) || (target.closest ? findControlForSvgElement(target.closest('[id]')) : null);
+            if (control) {
+                // Close service card if it was open
+                closeServiceCard();
 
-                    // If the mapped control is already expanded, treat this as a toggle -> collapse all
-                    if (control.classList.contains('expanded')) {
-                        collapseAllExcept(null);
-                        // refresh alerts/UI state
-                        try { if (window.dashboard && typeof window.dashboard.updateAlerts === 'function') window.dashboard.updateAlerts(); } catch (e) {}
-                        return;
-                    }
+                // If the mapped control is already expanded, treat this as a toggle -> collapse all
+                if (control.classList.contains('expanded')) {
+                    collapseAllExcept(null);
+                    // refresh alerts/UI state
+                    try { if (window.dashboard && typeof window.dashboard.updateAlerts === 'function') window.dashboard.updateAlerts(); } catch (e) {}
+                    return;
+                }
 
-                    // FROM-SVG: collapse other control panels and then programmatically
-                    // trigger a click on the matching control-item so it follows the same
-                    // code-path as a user click in the right panel (opens inline detail,
-                    // sets .focused/.control-open classes, updates indicators, etc.).
-                    collapseAllExcept(control);
+                // FROM-SVG: collapse other control panels and then programmatically
+                // trigger a click on the matching control-item so it follows the same
+                // code-path as a user click in the right panel (opens inline detail,
+                // sets .focused/.control-open classes, updates indicators, etc.).
+                collapseAllExcept(control);
+                
+                // Use requestAnimationFrame to ensure service card closure is painted before expanding control
+                requestAnimationFrame(function() {
                     try {
                         // Trigger the same click handler that runs when a user clicks the
                         // right-panel item. Use dispatchEvent so event listeners attached
@@ -433,10 +415,35 @@
                     } catch (err) {
                         try { control.click(); } catch (e) { /* ignore */ }
                     }
-                } else {
-                    // if clicked somewhere in the SVG that's not mapped, collapse everything
-                    collapseAllExcept(null);
-                    try { if (window.dashboard && typeof window.dashboard.updateAlerts === 'function') window.dashboard.updateAlerts(); } catch (e) {}
+                });
+            } else {
+                // if clicked somewhere in the SVG that's not mapped, collapse everything
+                collapseAllExcept(null);
+                try { if (window.dashboard && typeof window.dashboard.updateAlerts === 'function') window.dashboard.updateAlerts(); } catch (e) {}
+            }
+        }
+
+        // Why/what/outcome: Attach delegation to #car-dashboard-svg so clicking an SVG warning light
+        // focuses and expands the corresponding control-item on the right. Outcome: only that
+        // control-item remains expanded and receives focus.
+        var svgRoot = document.getElementById('car-dashboard-svg');
+        if (svgRoot) {
+            svgRoot.addEventListener('click', function(e) {
+                handleSvgWarningLightClick(e.target);
+            });
+        }
+
+        // Also handle inset overlay clicks (the rect elements with id like inset-overlay-brake-warning-light)
+        // These are clickable overlays on warning lights
+        // Use SVG click event so it processes through the SVG listener first
+        if (svgRoot) {
+            svgRoot.addEventListener('click', function(e) {
+                var id = e.target && e.target.id;
+                if (id && id.indexOf('inset-overlay-') === 0) {
+                    // This is an inset overlay rect, treat it same as clicking the warning light
+                    handleSvgWarningLightClick(e.target);
+                    // Stop propagation so outer click handler doesn't collapse
+                    e.stopPropagation();
                 }
             });
         }

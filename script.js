@@ -3429,13 +3429,16 @@ class RiskDashboard {
     let gaugeRaw = (typeof this.data?.KRIs !== 'undefined') ? this.data.KRIs : ((typeof this.data?.gaugeValue !== 'undefined') ? this.data.gaugeValue : 0);
     let gaugeNumeric = this._parsePercentValue(gaugeRaw);
         try {
-            // Always update the speed pointer from data so the visual matches the
-            // incoming numeric value. If an animation is currently running we avoid
-            // snapping and let that animation finish to preserve smoothness.
-            if (!(this._speedAnim && this._speedAnim.cancelled === false)) {
-                this.updateSpeedPointer(gaugeNumeric);
-            } else {
-                console.debug('Skipping immediate speed pointer update during active animation');
+            // Only update speed pointer when engine is active
+            // When powered off, pointers remain at zero and should not move
+            if (this.engineActive) {
+                // If an animation is currently running we avoid snapping and let
+                // that animation finish to preserve smoothness.
+                if (!(this._speedAnim && this._speedAnim.cancelled === false)) {
+                    this.updateSpeedPointer(gaugeNumeric);
+                } else {
+                    console.debug('Skipping immediate speed pointer update during active animation');
+                }
             }
         } catch (e) { /* non-fatal */ }
         const digital = document.getElementById('speed-gauge-value');
@@ -3446,7 +3449,8 @@ class RiskDashboard {
             const percentText = this.carDashboardSVG.getElementById('percent-dynamic-value');
             if (percentText) {
                     // Display and drive RPM needle from SRT (authoritative for RPM). Accept percent strings like "15%".
-                    if (typeof this.data?.SRT !== 'undefined') {
+                    // Only show if engine is active
+                    if (this.engineActive && typeof this.data?.SRT !== 'undefined') {
                         const srtNum = this._parsePercentValue(this.data.SRT);
                         percentText.textContent = srtNum.toFixed(2) + '%';
                         // reflect SRT on rpm pointer dynamically
@@ -3493,16 +3497,18 @@ class RiskDashboard {
             if (issuesOpen) {
                 issuesOpen.textContent = (this.engineActive && typeof this.data?.issuesOpenValue !== 'undefined') ? ('Issues Open: ' + this.data.issuesOpenValue) : '';
             }
-            // Ensure fuel & temperature pointers reflect the latest data values.
-            // Use the setter helpers which perform calibration and smooth animation.
-            try {
-                if (typeof this.data?.fuelValue !== 'undefined') {
-                    this.setFuelValue(this.data.fuelValue);
-                }
-                if (typeof this.data?.tempValue !== 'undefined') {
-                    this.setTempValue(this.data.tempValue);
-                }
-            } catch (e) { /* non-fatal */ }
+            // Only update fuel & temperature pointers when engine is active.
+            // When powered off, all pointers remain at zero.
+            if (this.engineActive) {
+                try {
+                    if (typeof this.data?.fuelValue !== 'undefined') {
+                        this.setFuelValue(this.data.fuelValue);
+                    }
+                    if (typeof this.data?.tempValue !== 'undefined') {
+                        this.setTempValue(this.data.tempValue);
+                    }
+                } catch (e) { /* non-fatal */ }
+            }
         }
     // Do not refresh the small '#last-updated' here; it is updated only when the JSON changes.
     }
@@ -4176,17 +4182,29 @@ class RiskDashboard {
             // choose shortest equivalent to avoid wrapping
             const candidates = [to, to + 360, to - 360];
             to = candidates.reduce((best, cur) => Math.abs(cur - from) < Math.abs(best - from) ? cur : best, candidates[0]);
-            if (this._speedAnim && this._speedAnim.cancel) this._speedAnim.cancelled = true;
-            const anim = { cancelled: false }; this._speedAnim = anim;
-            const start = performance.now(); const dur = 900;
+            // Cancel any existing animation
+            if (this._speedAnim) {
+                this._speedAnim.cancelled = true;
+            }
+            const anim = { cancelled: false }; 
+            this._speedAnim = anim;
+            const start = performance.now(); 
+            const dur = 900;
             const ease = x => 1 - Math.pow(1 - x, 3);
             const step = (now) => {
-                if (anim.cancelled) return;
+                // Stop if animation was cancelled (e.g., due to powered-off state)
+                if (anim.cancelled) {
+                    return;
+                }
                 const t = Math.min(1, (now - start) / dur);
                 const u = ease(t);
                 const cur = from + (to - from) * u;
                 g.setAttribute('transform', `translate(${dx} 0) rotate(${cur} ${hubX} ${hubY})`);
-                if (t < 1) requestAnimationFrame(step); else this._lastPointerAngle = to;
+                if (t < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    this._lastPointerAngle = to;
+                }
             };
             requestAnimationFrame(step);
         } catch (e) { /* ignore */ }
@@ -4202,10 +4220,17 @@ class RiskDashboard {
             const target = this.valueToAngle(v);
             const hubX = this.gaugeHubX, hubY = this.gaugeHubY;
             const dx = this.pointerDx || 0;
-            if (this._speedAnim && this._speedAnim.cancel) this._speedAnim.cancelled = true;
+            // Cancel any running animation
+            if (this._speedAnim) {
+                this._speedAnim.cancelled = true;
+            }
+            // Force the pointer to the exact position immediately
             g.setAttribute('transform', `translate(${dx} 0) rotate(${target} ${hubX} ${hubY})`);
+            // Update state to reflect the new position
             this._lastPointerAngle = target;
             this._lastGaugeValue = v;
+            // Clear animation reference so next animation starts fresh
+            this._speedAnim = null;
         } catch (e) { /* ignore */ }
     }
 
@@ -4339,11 +4364,16 @@ class RiskDashboard {
     // Set all pointers to calibrated zero positions
     snapPointersToZero() {
         try {
-            // Speed
+            // Speed Pointer: Cancel any running animation first, then set to zero
             if (this.carDashboardSVG) {
                 const g = this.carDashboardSVG.querySelector('#speed-pointer');
                 const a0 = this.valueToAngle(0);
                 if (g) {
+                    // Cancel any running animation to prevent it from interfering
+                    if (this._speedAnim) {
+                        this._speedAnim.cancelled = true;
+                        this._speedAnim = null;
+                    }
                     // preserve any pointerDx translate when snapping to zero
                     const dx = this.pointerDx || 0;
                     g.setAttribute('transform', `translate(${dx} 0) rotate(${a0} ${this.gaugeHubX} ${this.gaugeHubY})`);
@@ -4352,9 +4382,9 @@ class RiskDashboard {
                     this._lastGaugeValue = 0;
                 }
             }
-            // Fuel
+            // Fuel Pointer
             if (typeof this._fuelAngle0 === 'number') this.updateFuelPointer(0);
-            // Temp
+            // Temperature Pointer
             if (this.carDashboardSVG) {
                 const tp = this.carDashboardSVG.querySelector('#temp-pointer');
                 if (tp && typeof this._tempAngle0 === 'number') {
