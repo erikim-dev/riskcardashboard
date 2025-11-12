@@ -1,0 +1,179 @@
+path,value
+issuesOpenValue,255
+netLossValue,90.75 M
+MTD Risk Events,2
+ytdRiskEvents,266
+appetiteConsumption,47.76%
+noOfMaterialIssues,26
+SRT,68%
+KRIs,6.30%
+alerts[0].id,alert-1
+alerts[0].message,Country Control Environment At-Trigger
+alerts[0].status,at-trigger
+controlSystems.changeManagement,at-target
+controlSystems.controlEnvironment,at-trigger
+controlSystems.controlWeaknesses,at-trigger
+controlSystems.managementInfo,at-target
+controlSystems.controlProcesses,at-target
+controlSystems.bcmResilience,at-target
+controlSystems.appetiteConsumption,at-target
+controlSystems.PlanTesting,yes
+controlSystems.capacity,at-target
+svgElementMappings.changeManagement,esp-warning-light
+svgElementMappings.controlEnvironment,engine-warning-light
+svgElementMappings.controlWeaknesses,temp-warning-light
+svgElementMappings.managementInfo,bulb-warning-light
+svgElementMappings.controlProcesses,abs-warning-light
+svgElementMappings.bcmResilience,srs-warning-light
+svgElementMappings.appetiteConsumption,fuel-warning-light
+svgElementMappings.PlanTesting,seatbelt-warning-light
+svgElementMappings.leftIndicator,left-indicator-warning-light
+svgElementMappings.rightIndicator,right-indicator-warning-light
+svgElementMappings.headlight,headlight-warning-light
+svgElementMappings.capacity,oil-warning-light
+indicatorConditions.left-indicator-warning-light[0],allAtRisk
+indicatorConditions.left-indicator-warning-light[1],upcomingAudit
+indicatorConditions.right-indicator-warning-light[0],allAtRisk
+indicatorConditions.right-indicator-warning-light[1],upcomingAudit
+indicatorConditions.headlight-warning-light[0],allAtRisk
+indicatorConditions.headlight-warning-light[1],upcomingAudit
+stressSituations.upcomingAudit,False
+stressSituations.financialClose,False
+controlDetails.engine-control.outcome,At trigger
+controlDetails.engine-control.Appetite Consumption Threshold[0],KES <=130m - Target
+controlDetails.engine-control.Appetite Consumption Threshold[1],KES >130m<=190m - Trigger
+controlDetails.engine-control.Appetite Consumption Threshold[2],KES >190m - Risk
+controlDetails.engine-control.Appetite Consumption Outcome,At Target (90.75M)
+controlDetails.engine-control.SRTs Threshold[0],0-10% - Target
+controlDetails.engine-control.SRTs Threshold[1],>10% <50% - Target
+controlDetails.engine-control.SRTs Threshold[2],>=50% - Risk
+controlDetails.engine-control.SRTs Outcome,Trigger (15%)
+controlDetails.esp-control.measurement,Change Management Metrics
+controlDetails.esp-control.NAPA Overdue items Threshold[0],>5 <10 - Target
+controlDetails.esp-control.NAPA Overdue items Threshold[1],>11 <20 - Trigger
+controlDetails.esp-control.NAPA Overdue items Threshold[2],>20 - Risk
+controlDetails.esp-control.NAPA Overdue items Outcome,Target (5%)
+controlDetails.esp-control.Change KRIs Performance (Avg Score) Threshold[0],2 - Target
+controlDetails.esp-control.Change KRIs Performance (Avg Score) Threshold[1],1 - Trigger
+controlDetails.esp-control.Change KRIs Performance (Avg Score) Threshold[2],0 - Risk
+controlDetails.esp-control.Change KRIs Performance (Avg Score) Outcome,Target (5)
+controlDetails.esp-control.outcome,At-Target
+controlDetails.esp-control.Overall Outcome,At-Target
+controlDetails.temp-control.measurement,Control Weaknesses & Issues Metrics
+controlDetails.temp-control.Issues Overdue/Reopened/Failed IV[0],0 - Target
+controlDetails.temp-control.Issues Overdue/Reopened/Failed IV[1],<5 - Trigger
+controlDetails.temp-control.Issues Overdue/Reopened/Failed IV[2],>=5 - Risk
+controlDetails.temp-control.Issues Overdue/Reopened/Failed IV Outcome,Trigger (4)
+controlDetails.temp-control.Issues/milestones at Risk[0],>5 <10 - Target
+controlDetails.temp-control.Issues/milestones at Risk[1],>10 <20 - Trigger
+controlDetails.temp-control.Issues/milestones at Risk[2],>20 - Risk
+controlDetails.temp-control.Issues/milestones at Risk Outcome,Target (5)
+controlDetails.temp-control.No of Material Issues (Major/Critical)[0],>5 <10 - Target
+controlDetails.temp-control.No of Material Issues (Major/Critical)[1],>10 <20 - Trigger
+controlDetails.temp-control.No of Material Issues (Major/Critical)[2],>20 - Risk
+controlDetails.temp-control.No of Material Issues (Major/Critical) Outcome,Risk (27)
+controlDetails.temp-control.Risk Events Timelines Threshold[0],=>=95% - Target
+controlDetails.temp-control.Risk Events Timelines Threshold[1],90-94% - Trigger
+controlDetails.temp-control.Risk Events Timelines Threshold[2],<90% - Risk
+controlDetails.temp-control.Risk Events Timelines Outcome,Target (96%)
+controlDetails.temp-control.Policy Localization Threshold[0],=>=95% - Target
+controlDetails.temp-control.Policy Localization Threshold[1],=>85% - Trigger
+controlDetails.temp-control.Policy Localization Threshold[2],<85% - Risk
+controlDetails.temp-control.Policy Localization Outcome,Target (97%)
+controlDetails.temp-control.DWB Overdue Threshold[0],<10% - Target
+controlDetails.temp-control.DWB Overdue Threshold[1],10-15% - Trigger
+controlDetails.temp-control.DWB Overdue Threshold[2],>15% - Risk
+controlDetails.temp-control.DWB Overdue Outcome,Target (5%)
+controlDetails.temp-control.outcome,At Target
+controlDetails.temp-control.Overall Outcome,At Trigger
+controlDetails.abs-control.measurement,Control Processes Metrics
+controlDetails.abs-control.CPA Refresh (Within 12 Months)[0],>=90% - Target
+controlDetails.abs-control.CPA Refresh (Within 12 Months)[1],>=80%-<90% - Trigger
+controlDetails.abs-control.CPA Refresh (Within 12 Months)[2],<80% - Risk
+controlDetails.abs-control.CPA Refresh (Within 12 Months) Outcome,Target (95%)
+controlDetails.abs-control.C.A. plan execution,>=85% - Target; >=75%-<85% - Trigger; <75% - Risk
+controlDetails.abs-control.C.A. plan execution Outcome,Target (95%)
+controlDetails.abs-control.% UNSAT/NI Reports (YTD)[0],=<10 - Target
+controlDetails.abs-control.% UNSAT/NI Reports (YTD)[1],>10%-=<20% - Trigger
+controlDetails.abs-control.% UNSAT/NI Reports (YTD)[2],>20% - Risk
+controlDetails.abs-control.% UNSAT/NI Reports (YTD) Outcome,Target (6%)
+controlDetails.abs-control.outcome,At Target
+controlDetails.abs-control.Overall Outcome,At-target
+controlDetails.abs-control.C.A. plan execution[0],>=85% - Target
+controlDetails.abs-control.C.A. plan execution[1],>=75%-<85% - Trigger
+controlDetails.abs-control.C.A. plan execution[2],<75% - Risk
+controlDetails.abs-control.C.A. plan execution Outcome,Target (95%)
+controlDetails.bulb-control.measurement,Data quality score
+controlDetails.bulb-control.threshold,>= 90%
+controlDetails.bulb-control.% of KIs assessed on time[0],100% - Target
+controlDetails.bulb-control.% of KIs assessed on time[1],>=90%
+controlDetails.bulb-control.% of KIs assessed on time[2],<90% - Risk
+controlDetails.bulb-control.% of KIs assessed on time Outcome,Trigger (96%)
+controlDetails.bulb-control.Risk Types without KIs on ORMS[0],0 - Target
+controlDetails.bulb-control.Risk Types without KIs on ORMS[1],N/A - Trigger
+controlDetails.bulb-control.Risk Types without KIs on ORMS[2],>0 - Risk
+controlDetails.bulb-control.Risk Types without KIs on ORMS Outcome,Target (0)
+controlDetails.bulb-control.outcome,At-Target
+controlDetails.bulb-control.Overall Outcome,At Target
+controlDetails.brake-control.measurement,Traction control failures
+controlDetails.brake-control.threshold,< 1%
+controlDetails.brake-control.Control Related Vacant Roles (>90 days)[0],<=3 - Target
+controlDetails.brake-control.Control Related Vacant Roles (>90 days)[1],>3-5 - Trigger
+controlDetails.brake-control.Control Related Vacant Roles (>90 days)[2],>5 - Risk
+controlDetails.brake-control.Control Related Vacant Roles (>90 days) Outcome,Target (0)
+controlDetails.brake-control.Overdue Mandatory Training (%)[0],0% -Target
+controlDetails.brake-control.Overdue Mandatory Training (%)[1],<3% - Trigger
+controlDetails.brake-control.Overdue Mandatory Training (%)[2],>3% - Risk
+controlDetails.brake-control.Overdue Mandatory Training Outcome,Target (0.050%)
+controlDetails.brake-control.Overall Outcome,At Target
+controlDetails.fuel-control.measurement,Appetite utilization %
+controlDetails.fuel-control.threshold[0],KES <=130m - Target
+controlDetails.fuel-control.threshold[1],KES >130m<=190m - Trigger
+controlDetails.fuel-control.threshold[2],KES >190m - Risk
+controlDetails.fuel-control.outcome,Target
+controlDetails.fuel-control.Appetite Consumption Threshold[0],KES <=130m - Target
+controlDetails.fuel-control.Appetite Consumption Threshold[1],KES >130m<=190m - Trigger
+controlDetails.fuel-control.Appetite Consumption Threshold[2],KES >190m - Risk
+controlDetails.fuel-control.Appetite Consumption Outcome,Target (82.64M)
+controlDetails.fuel-control.Overall Outcome,At Target
+controlDetails.srt-metrics.measurement,SRTs
+controlDetails.srt-metrics.threshold[0],0-10% - Target
+controlDetails.srt-metrics.threshold[1],>10% <50% - Target
+controlDetails.srt-metrics.threshold[2],>=50% - Risk
+controlDetails.srt-metrics.outcome,Target
+controlDetails.srs-control.measurement,BCM readiness
+controlDetails.srs-control.outcome,Satisfactory(Target)
+controlDetails.seatbelt-control.measurement,Plan testing coverage
+controlDetails.seatbelt-control.outcome,Satisfactory(Target)
+controlDetails.oil-control.measurement,Capacity ratio
+controlDetails.oil-control.outcome,Satisfactory(Target)
+rightPanel.engine-control.name,Country Control Environment
+rightPanel.engine-control.status,Check Engine - Control gaps
+rightPanel.abs-control.name,Control Processes
+rightPanel.abs-control.status,Anti-lock - control effectiveness
+rightPanel.temp-control.name,Control Weaknesses & Issues
+rightPanel.temp-control.status,Temperature - Issue Management
+rightPanel.esp-control.name,Change Management
+rightPanel.esp-control.status,Electronic Stability - Monitors org change
+rightPanel.brake-control.name,Structure
+rightPanel.brake-control.status,Traction Control - Capacity
+rightPanel.bulb-control.name,Management Infomation
+rightPanel.bulb-control.status,Bulb - Data quality & reporting
+rightPanel.fuel-control.name,Appetite Consumption
+rightPanel.fuel-control.status,Fuel - Risk appetite utilization
+rightPanel.srs-control.name,BCM & Resilience
+rightPanel.srs-control.status,Supplemental - Business continuity
+rightPanel.seatbelt-control.name,Plan Testing
+rightPanel.seatbelt-control.status,Seat Belt - Evidence & Drills
+rightPanel.oil-control.name,Capacity & Capability
+rightPanel.oil-control.status,Oil - Resource adequacy
+metadata.lastUpdated,2025-10-23T00:00:00Z
+srtDetails.title,SRTS NOT AT-TARGET
+srtDetails.items[0],Data Records and Management Risk
+srtDetails.items[1],Technology Risk
+srtDetails.items[2],Information Security Cyber Risk
+srtDetails.items[3],Financial Crime
+gaugeSrtDetails.title,SRTS With Unmeasured KRI's
+gaugeSrtDetails.items[0],Credit Risk
+gaugeSrtDetails.items[1],Legal Risk
+gaugeSrtDetails.items[2],Tax Risk

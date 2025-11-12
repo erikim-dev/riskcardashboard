@@ -1,8 +1,21 @@
 // Remove any legacy overlay elements on page load to guarantee no duplicates
-document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
     // Remove various overlay elements that may have been injected previously,
     // including any rc-click-overlay rectangles (created by older wiring code).
-    document.querySelectorAll('.engine-start-overlay, .engine-overlay-button, .partial-dim-overlay, .powered-off-overlay, .powered-off-start-button, .rc-click-overlay, #rc-click-overlays, [id^="rc-click-overlay-"]').forEach(el => el.remove());
+    // Also remove any runtime-inserted inset/exact overlays that start with those ids.
+    document.querySelectorAll('.engine-start-overlay, .engine-overlay-button, .partial-dim-overlay, .powered-off-overlay, .powered-off-start-button, .rc-click-overlay, #rc-click-overlays, [id^="rc-click-overlay-"], [id^="inset-overlay-"], [id^="exact-overlay-"]').forEach(el => el.remove());
+    // After a short delay, (re)create overlays for all warning lights with larger padding
+    // so the invisible hit areas cover the visible warning lights. This will re-apply
+    // overlays if they were removed earlier in the page lifecycle.
+    setTimeout(() => {
+        try {
+            if (window.dashboard && typeof window.dashboard.createOverlaysForAllWarningLights === 'function') {
+                // clear any existing overlays just in case
+                try { document.querySelectorAll('[id^="inset-overlay-"],[id^="exact-overlay-"]').forEach(el=>el.remove()); } catch(e){}
+                window.dashboard.createOverlaysForAllWarningLights(16, 8);
+            }
+        } catch (e) {}
+    }, 300);
     // On load, ensure the small '#last-updated' element remains available for data-driven updates
     // and start a separate live clock for the dashboard footer '#main-last-updated'.
     var lastUpdated = document.getElementById('last-updated');
@@ -50,6 +63,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Login overlay removed: no interactive sign-in required for this build
 });
+// Helper to build API URLs respecting runtime window.API_BASE (empty string => same-origin)
+function apiBase(path) {
+    try {
+        const base = (typeof window !== 'undefined' && window.API_BASE) ? String(window.API_BASE).replace(/\/+$/, '') : '';
+        if (!path) return base || '';
+        if (base) return base + (path.startsWith('/') ? path : '/' + path);
+        return path.startsWith('/') ? path : '/' + path;
+    } catch (e) { return path; }
+}
 // Single consolidated RiskDashboard controller
 class RiskDashboard {
     constructor() {
@@ -232,6 +254,8 @@ class RiskDashboard {
             // Inline dim application removed to allow external/alternate dim rules
             // try { this._applyInlineDim(); } catch (e) { /* ignore */ }
             this.attachFileLoader();
+            // Attach the compact CSV uploader admin UI (posts to /api/update)
+            try { this.attachCsvUploader(); } catch (e) { /* non-fatal */ }
             try { this.wireControlItemPopups(); } catch (e) { /* ignore */ }
             this.updateDashboard();
             // Start a dedicated data watcher that polls the JSON and updates the UI when it changes
@@ -300,6 +324,8 @@ class RiskDashboard {
         try {
             const data = this.data || {};
             
+            // capture instance for inner closures
+            const self = this;
             // Handler to close expanded items
             const closeExpandedItems = (excludeItem) => {
                 document.querySelectorAll('.control-item.expanded').forEach(item => {
@@ -325,6 +351,10 @@ class RiskDashboard {
                         }
                     }
                 });
+                // After closing expanded items, refresh the alert banner so the
+                // top-right indicator returns to its default state if no critical
+                // alerts remain or were acknowledged by the user actions above.
+                try { if (typeof self.updateAlerts === 'function') self.updateAlerts(); } catch (e) {}
             };
 
             // Add document click listener for outside clicks
@@ -925,6 +955,98 @@ class RiskDashboard {
         } catch (e) { console.warn('wireGaugeHover failed', e); }
     }
 
+    // Special-case behavior for the brake warning light overlay:
+    // - Click once: open the Service Card (flip) and animate the 'Governance' item smoothly
+    // - Click twice: return to main (unflip)
+    wireBrakeOverlayBehavior() {
+        try {
+            if (!this.carDashboardSVG) return;
+            const svg = this.carDashboardSVG;
+            const node = (typeof svg.getElementById === 'function') ? svg.getElementById('brake-warning-light') : svg.querySelector('#brake-warning-light');
+            if (!node) return;
+
+            // Ensure overlay exists (insert an inset overlay if not present)
+            let overlay = null;
+            try { overlay = node.querySelector('#inset-overlay-brake-warning-light') || node.querySelector('#exact-overlay-brake-warning-light'); } catch (e) { overlay = null; }
+            if (!overlay) {
+                try { overlay = this.createInsetRoundedOverlay && this.createInsetRoundedOverlay('brake-warning-light', 12, 6); } catch (e) { overlay = null; }
+            }
+            if (!overlay) {
+                // as a fallback, attach to the group itself
+                overlay = node;
+            }
+
+            // inject smooth governance pulse CSS if not present
+            try {
+                if (!document.getElementById('governance-pulse-style')) {
+                    const css = `
+                    @keyframes governancePulse { 0% { transform: scale(1); box-shadow: none; } 50% { transform: scale(1.08); box-shadow: 0 10px 26px rgba(0,0,0,0.28); } 100% { transform: scale(1); box-shadow: none; } }
+                    .governance-anim { animation: governancePulse 900ms cubic-bezier(.2,.9,.2,1); transform-origin: center; }
+                    `;
+                    const st = document.createElement('style'); st.id = 'governance-pulse-style'; st.textContent = css; document.head.appendChild(st);
+                }
+            } catch (e) {}
+
+            // Toggle state stored on dashboard instance
+            if (typeof this._brakeOverlayOpen === 'undefined') this._brakeOverlayOpen = false;
+
+            const handleClick = (ev) => {
+                try {
+                    ev && ev.stopPropagation && ev.stopPropagation();
+                } catch (e) {}
+
+                const svc = document.getElementById('service-card');
+                const ce = document.querySelector('.control-environment');
+                if (!svc || !ce) return;
+
+                // If not open, open (click service card) and animate Governance
+                if (!this._brakeOverlayOpen) {
+                    try { svc.click(); } catch (e) { try { svc.dispatchEvent && svc.dispatchEvent(new MouseEvent('click', { bubbles: true })); } catch (ee) {} }
+
+                    // wait briefly for the flip & blank content insertion to occur
+                    setTimeout(() => {
+                        try {
+                            // find governance list item in either blanked area or service panel
+                            const candidates = Array.from(document.querySelectorAll('.service-card-blank-items li, .service-list li, .service-card-blank-items li'));
+                            const gov = candidates.find(li => li && /governance/i.test((li.textContent||'').trim()));
+                            if (gov) {
+                                // add animation class and remove after animation finishes
+                                try {
+                                    gov.classList.remove('governance-anim');
+                                    // force reflow then add class to restart animation
+                                    void gov.offsetWidth;
+                                    gov.classList.add('governance-anim');
+                                    const cleanup = () => { try { gov.classList.remove('governance-anim'); gov.removeEventListener('animationend', cleanup); } catch (e) {} };
+                                    gov.addEventListener('animationend', cleanup);
+                                    // safety timeout
+                                    setTimeout(cleanup, 1300);
+                                } catch (e) {}
+                            }
+                        } catch (e) {}
+                    }, 160);
+
+                    this._brakeOverlayOpen = true;
+                    return;
+                }
+
+                // Already open -> close (return to main)
+                try { svc.click(); } catch (e) { try { svc.dispatchEvent && svc.dispatchEvent(new MouseEvent('click', { bubbles: true })); } catch (ee) {} }
+                this._brakeOverlayOpen = false;
+            };
+
+            // Attach handler. If overlay is a rect inside the group, attach to it; otherwise attach to group.
+            try {
+                if (overlay && overlay !== node) {
+                    overlay.style.cursor = 'pointer';
+                    try { overlay.onclick = handleClick; } catch (e) { overlay.addEventListener && overlay.addEventListener('click', handleClick); }
+                } else {
+                    try { node.onclick = handleClick; } catch (e) { try { node.addEventListener && node.addEventListener('click', handleClick); } catch (ee) {} }
+                }
+            } catch (e) {}
+
+        } catch (e) { console.warn('wireBrakeOverlayBehavior failed', e); }
+    }
+
     // Open a modal and load service-card.html into it (simple, reversible)
     async openServiceCardModal() {
         try {
@@ -1167,9 +1289,181 @@ class RiskDashboard {
         });
     }
 
+    // Compact in-page CSV uploader: posts multipart/form-data to /api/update
+    attachCsvUploader() {
+        try {
+            // Only add once
+            if (document.getElementById('csv-upload-widget')) return;
+
+            // Create a tiny camouflaged floating button in the bottom-right corner
+            const widget = document.createElement('div');
+            widget.id = 'csv-upload-widget';
+            widget.setAttribute('role', 'button');
+            widget.setAttribute('tabindex', '0');
+            widget.setAttribute('aria-label', 'Admin CSV upload');
+            widget.title = 'Admin CSV upload (hidden)';
+            // Minimal, low-contrast styling so it camouflages with the dashboard
+            Object.assign(widget.style, {
+                position: 'fixed',
+                right: '12px',
+                bottom: '12px',
+                width: '30px',
+                height: '30px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.03)',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+                color: 'rgba(255,255,255,0.7)',
+                cursor: 'pointer',
+                opacity: '0.95',
+                border: '1px solid rgba(255,255,255,0.06)',
+                transition: 'opacity 160ms ease, transform 160ms ease',
+                zIndex: 12000,
+                backdropFilter: 'blur(2px)'
+            });
+
+            // On hover/focus, make it visible enough to interact
+            widget.addEventListener('mouseenter', () => { widget.style.opacity = '0.95'; widget.style.transform = 'scale(1.05)'; });
+            // Keep visible for debugging — we'll revert after you confirm the widget is present
+            widget.addEventListener('mouseleave', () => { widget.style.opacity = '0.95'; widget.style.transform = 'scale(1)'; });
+            widget.addEventListener('focus', () => { widget.style.opacity = '0.95'; });
+            widget.addEventListener('blur', () => { widget.style.opacity = '0.95'; });
+
+            // Add a tiny upload icon (SVG) for clarity on hover — otherwise it's camouflaged
+            widget.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+                    <path d="M12 3v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M21 21H3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>`;
+
+            // Hidden file input (visually hidden but in DOM for accessibility)
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.csv,text/csv';
+            fileInput.id = 'csv-file-input-hidden';
+            fileInput.style.position = 'absolute';
+            fileInput.style.left = '-9999px';
+            fileInput.setAttribute('aria-hidden', 'true');
+
+            // Tiny ephemeral status tooltip element
+            const tip = document.createElement('div');
+            tip.id = 'csv-upload-tip';
+            Object.assign(tip.style, {
+                position: 'fixed',
+                right: '50px',
+                bottom: '18px',
+                padding: '6px 8px',
+                background: 'rgba(0,0,0,0.7)',
+                color: '#fff',
+                fontSize: '11px',
+                borderRadius: '6px',
+                opacity: '0',
+                transition: 'opacity 180ms ease',
+                zIndex: 12000,
+                pointerEvents: 'none'
+            });
+            document.body.appendChild(tip);
+
+            // Append to body so it stays above other panels and is always reachable
+            document.body.appendChild(widget);
+            document.body.appendChild(fileInput);
+
+            const showTip = (text) => {
+                try { tip.textContent = text; tip.style.opacity = '1'; setTimeout(() => { tip.style.opacity = '0'; }, 3000); } catch (e) {}
+            };
+
+            const doUpload = async (file) => {
+                if (!file) { showTip('No file'); return; }
+                const fd = new FormData(); fd.append('file', file, file.name);
+                widget.style.opacity = '0.6';
+                try {
+                    const res = await fetch(apiBase('/api/update'), { method: 'POST', body: fd });
+                    if (!res.ok) {
+                        let txt = '';
+                        try { txt = await res.text(); } catch (e) {}
+                        console.error('CSV upload failed', res.status, txt);
+                        showTip('Upload failed');
+                    } else {
+                        const j = await res.json().catch(() => null);
+                        if (j && j.data) {
+                            this.data = j.data;
+                            this.lastDataHash = JSON.stringify(this.data);
+                            // derive fuel/temp quickly
+                            try {
+                                const rawNet = this.data && this.data.netLossValue;
+                                if (typeof rawNet !== 'undefined' && rawNet !== null) {
+                                    const m = String(rawNet).match(/([0-9]+(?:\.[0-9]+)?)\s*M/i);
+                                    if (m) {
+                                        const millions = parseFloat(m[1]);
+                                        if (Number.isFinite(millions)) this.data.fuelValue = Math.max(0, Math.min(200, Math.round(millions)));
+                                    }
+                                }
+                            } catch (e) {}
+                            try {
+                                const rawT = this.data && (typeof this.data.noOfMaterialIssues !== 'undefined' ? this.data.noOfMaterialIssues : this.data.dynamicValue287);
+                                if (typeof rawT !== 'undefined' && rawT !== null) {
+                                    const n = Number(String(rawT).toString().replace(/[^0-9.\-]/g, ''));
+                                    if (Number.isFinite(n)) this.data.tempValue = Math.max(0, Math.min(25, Math.round(n)));
+                                }
+                            } catch (e) {}
+                            try { if (this.carDashboardSVG) this.validateSvgMappings(); } catch (e) {}
+                            try { this.updateDashboard(); } catch (e) {}
+                        }
+                        showTip((j && j.updated) ? 'Applied' : 'Uploaded');
+                    }
+                } catch (err) {
+                    console.error('Upload error', err);
+                    showTip('Upload error');
+                } finally {
+                    widget.style.opacity = '0.08';
+                }
+            };
+
+            widget.addEventListener('click', (e) => { e.preventDefault(); fileInput.click(); });
+            widget.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+
+            fileInput.addEventListener('change', (ev) => {
+                const f = ev.target.files && ev.target.files[0];
+                if (f) doUpload(f);
+                // clear value so the same file can be reselected later
+                try { ev.target.value = ''; } catch (e) {}
+            });
+
+            // Respect reduced-visibility request: keep low opacity until hovered/focused
+            widget.style.opacity = '0.08';
+
+        } catch (e) { console.warn('attachCsvUploader failed', e); }
+    }
+
     async loadData() {
         try {
-            const res = await fetch(`./data/risk-data.json?t=${Date.now()}`);
+            // Try live API first (short timeout). If API is unavailable, fall back to local data file.
+            const fetchWithTimeout = (url, ms = 1500) => {
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), ms);
+                return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(id));
+            };
+
+            let res = null;
+            try {
+                // Prefer API endpoint if present on the same host (respect runtime API_BASE)
+                res = await fetchWithTimeout(apiBase('/api/data?t=' + Date.now()), 1200);
+                if (!res || !res.ok) {
+                    // fall back to local file below
+                    res = null;
+                }
+            } catch (e) {
+                // API unreachable or timed out; fall back to local file
+                res = null;
+            }
+
+            if (!res) {
+                res = await fetch(`./data/risk-data.json?t=${Date.now()}`);
+            }
             let json;
             try {
                 json = await res.json();
@@ -1206,6 +1500,30 @@ class RiskDashboard {
                 }
                 this.data = json;
                 this.lastDataHash = hash;
+                    // Ensure derived numeric values are available for pointers when data comes from the watcher
+                    try {
+                        // Derive fuelValue from netLossValue if present (e.g. "79.80 M")
+                        const rawNet = this.data && this.data.netLossValue;
+                        if (typeof rawNet !== 'undefined' && rawNet !== null) {
+                            const m = String(rawNet).match(/([0-9]+(?:\.[0-9]+)?)\s*M/i);
+                            if (m) {
+                                const millions = parseFloat(m[1]);
+                                if (Number.isFinite(millions)) {
+                                    this.data.fuelValue = Math.max(0, Math.min(200, Math.round(millions)));
+                                    console.debug('Watcher: derived fuelValue from netLossValue', { millions, fuelValue: this.data.fuelValue });
+                                }
+                            }
+                        }
+                        // Derive tempValue from noOfMaterialIssues / dynamicValue287
+                        const rawT = this.data && (typeof this.data.noOfMaterialIssues !== 'undefined' ? this.data.noOfMaterialIssues : this.data.dynamicValue287);
+                        if (typeof rawT !== 'undefined' && rawT !== null) {
+                            const n = Number(String(rawT).toString().replace(/[^0-9.\-]/g, ''));
+                            if (Number.isFinite(n)) {
+                                this.data.tempValue = Math.max(0, Math.min(25, Math.round(n)));
+                                console.debug('Watcher: derived tempValue from dynamicValue287/noOfMaterialIssues', { rawT, tempValue: this.data.tempValue });
+                            }
+                        }
+                    } catch (e) { /* non-fatal */ }
                 // Update the small 'Last Updated' display only when the incoming JSON actually changed.
                 try {
                     const el = document.getElementById('last-updated');
@@ -1245,7 +1563,8 @@ class RiskDashboard {
                 } catch (e) { /* non-fatal */ }
                 // If incoming JSON contains dynamicValue287 use it to drive temp pointer (0..20)
                 try {
-                    const rawT = this.data && this.data.dynamicValue287;
+                    // Prefer new key 'noOfMaterialIssues' (user renamed dynamicValue287), fall back to legacy dynamicValue287
+                    const rawT = this.data && (typeof this.data.noOfMaterialIssues !== 'undefined' ? this.data.noOfMaterialIssues : this.data.dynamicValue287);
                         if (typeof rawT !== 'undefined' && rawT !== null) {
                             const n = Number(String(rawT).toString().replace(/[^0-9.\-]/g, ''));
                             if (Number.isFinite(n)) {
@@ -1361,7 +1680,9 @@ class RiskDashboard {
             setTimeout(() => { try { if (typeof this.createOverlaysForAllWarningLights === 'function') this.createOverlaysForAllWarningLights(6, 6); else {
                         // fallback: explicitly ensure bulb and esp overlays exist
                         try { if (this.createInsetRoundedOverlay) { this.createInsetRoundedOverlay('bulb-warning-light', 6, 6); this.createInsetRoundedOverlay('esp-warning-light', 6, 6); } else if (this.createExactOverlayForId) { this.createExactOverlayForId('bulb-warning-light', 6); this.createExactOverlayForId('esp-warning-light', 6); } } catch (e) {}
-                    } } catch (e) {} }, 220);
+            } } catch (e) {} }, 220);
+        // Wire special brake overlay behavior shortly after overlays are created
+        setTimeout(() => { try { if (typeof this.wireBrakeOverlayBehavior === 'function') this.wireBrakeOverlayBehavior(); } catch (e) {} }, 300);
             // Consolidate repeated post-SVG setup calls
             this._safeCalls([
                 [() => this.buildSpeedTickMap(), 'buildSpeedTickMap failed'],
@@ -3108,49 +3429,46 @@ class RiskDashboard {
     let gaugeRaw = (typeof this.data?.KRIs !== 'undefined') ? this.data.KRIs : ((typeof this.data?.gaugeValue !== 'undefined') ? this.data.gaugeValue : 0);
     let gaugeNumeric = this._parsePercentValue(gaugeRaw);
         try {
-            if (!this.engineActive) {
-                // car off: always force pointer to zero, even if animation is running
-                this.setGaugeToZero();
-                if (this._speedAnim && this._speedAnim.cancelled === false) {
-                    this._speedAnim.cancelled = true;
-                }
+            // Always update the speed pointer from data so the visual matches the
+            // incoming numeric value. If an animation is currently running we avoid
+            // snapping and let that animation finish to preserve smoothness.
+            if (!(this._speedAnim && this._speedAnim.cancelled === false)) {
+                this.updateSpeedPointer(gaugeNumeric);
             } else {
-                // If a speed animation is currently running, avoid overriding it with an immediate set
-                if (!(this._speedAnim && this._speedAnim.cancelled === false)) {
-                    this.updateSpeedPointer(gaugeNumeric);
-                } else {
-                    console.debug('Skipping immediate speed pointer update during initial sweep');
-                }
+                console.debug('Skipping immediate speed pointer update during active animation');
             }
         } catch (e) { /* non-fatal */ }
         const digital = document.getElementById('speed-gauge-value');
-    if (digital) digital.textContent = this.engineActive ? (gaugeNumeric.toFixed(2) + '%') : '';
+    if (digital) digital.textContent = gaugeNumeric.toFixed(2) + '%';
         if (this.carDashboardSVG) {
             const gaugeText = this.carDashboardSVG.getElementById('gauge-dynamic-value');
             if (gaugeText) gaugeText.textContent = this.engineActive ? (gaugeNumeric.toFixed(2) + '%') : '';
             const percentText = this.carDashboardSVG.getElementById('percent-dynamic-value');
             if (percentText) {
                     // Display and drive RPM needle from SRT (authoritative for RPM). Accept percent strings like "15%".
-                    if (this.engineActive && typeof this.data?.SRT !== 'undefined') {
+                    if (typeof this.data?.SRT !== 'undefined') {
                         const srtNum = this._parsePercentValue(this.data.SRT);
                         percentText.textContent = srtNum.toFixed(2) + '%';
-                        // reflect SRT on rpm pointer dynamically (engine on)
+                        // reflect SRT on rpm pointer dynamically
                         try { if (typeof this.setRpmPercent === 'function') this.setRpmPercent(srtNum); } catch (e) { console.warn('setRpmPercent error', e); }
                         // update any HTML rpm label if present
-                        try { const rpmLabel = document.getElementById('rpm-value'); if (rpmLabel) rpmLabel.textContent = this.engineActive ? (srtNum.toFixed(2) + '%') : ''; } catch (e) {}
+                        try { const rpmLabel = document.getElementById('rpm-value'); if (rpmLabel) rpmLabel.textContent = srtNum.toFixed(2) + '%'; } catch (e) {}
                     } else {
                         percentText.textContent = '';
-                        // keep rpm at zero while off
                         try { if (typeof this.setRpmToZero === 'function') this.setRpmToZero(); } catch (e) { /* ignore */ }
                     }
             }
             const dyn287 = this.carDashboardSVG.getElementById('dynamic-value-287');
             if (dyn287) {
-                dyn287.textContent = (this.engineActive && typeof this.data?.dynamicValue287 !== 'undefined') ? this.data.dynamicValue287 : '';
+                // Prefer new key 'noOfMaterialIssues', fall back to legacy 'dynamicValue287'
+                const v287 = (typeof this.data?.noOfMaterialIssues !== 'undefined') ? this.data.noOfMaterialIssues : this.data?.dynamicValue287;
+                dyn287.textContent = (this.engineActive && typeof v287 !== 'undefined') ? String(v287) : '';
             }
             const dyn285 = this.carDashboardSVG.getElementById('dynamic-value-285');
             if (dyn285) {
-                dyn285.textContent = (this.engineActive && typeof this.data?.dynamicValue285 !== 'undefined') ? this.data.dynamicValue285 : '';
+                // Prefer new key 'appetiteConsumption', fall back to legacy 'dynamicValue285'
+                const v285 = (typeof this.data?.appetiteConsumption !== 'undefined') ? this.data.appetiteConsumption : this.data?.dynamicValue285;
+                dyn285.textContent = (this.engineActive && typeof v285 !== 'undefined') ? String(v285) : '';
             }
             const ytdEvents = this.carDashboardSVG.getElementById('ytd-risk-events');
             if (ytdEvents) {
@@ -3175,6 +3493,16 @@ class RiskDashboard {
             if (issuesOpen) {
                 issuesOpen.textContent = (this.engineActive && typeof this.data?.issuesOpenValue !== 'undefined') ? ('Issues Open: ' + this.data.issuesOpenValue) : '';
             }
+            // Ensure fuel & temperature pointers reflect the latest data values.
+            // Use the setter helpers which perform calibration and smooth animation.
+            try {
+                if (typeof this.data?.fuelValue !== 'undefined') {
+                    this.setFuelValue(this.data.fuelValue);
+                }
+                if (typeof this.data?.tempValue !== 'undefined') {
+                    this.setTempValue(this.data.tempValue);
+                }
+            } catch (e) { /* non-fatal */ }
         }
     // Do not refresh the small '#last-updated' here; it is updated only when the JSON changes.
     }
@@ -3205,8 +3533,26 @@ class RiskDashboard {
         if (this._dataWatcherInterval) clearInterval(this._dataWatcherInterval);
         this._dataWatcherInterval = setInterval(async () => {
             try {
-                const res = await fetch(`./data/risk-data.json?t=${Date.now()}`);
-                if (!res || !res.ok) return;
+                // Prefer the live API endpoint if available (short timeout), otherwise fall back to the local file
+                const fetchWithTimeout = (url, ms = 1500) => {
+                    const controller = new AbortController();
+                    const id = setTimeout(() => controller.abort(), ms);
+                    return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(id));
+                };
+
+                let res = null;
+                try {
+                    res = await fetchWithTimeout(apiBase('/api/data?t=' + Date.now()), 1200);
+                    if (!res || !res.ok) res = null;
+                } catch (e) { res = null; }
+
+                if (!res) {
+                    try {
+                        res = await fetch(`./data/risk-data.json?t=${Date.now()}`);
+                        if (!res || !res.ok) return;
+                    } catch (e) { return; }
+                }
+
                 const json = await res.json();
                 const hash = JSON.stringify(json);
                 if (hash !== this.lastDataHash) {
@@ -3366,9 +3712,50 @@ class RiskDashboard {
         if (!this.carDashboardSVG) return false;
         try {
             const svg = this.carDashboardSVG;
-            const r0 = svg.querySelector(zeroRectSelector);
-            const r1 = svg.querySelector(maxRectSelector);
-            if (!r0 || !r1) return false;
+            let r0 = svg.querySelector(zeroRectSelector);
+            let r1 = svg.querySelector(maxRectSelector);
+            // If the exact selectors don't match (SVG edited/optimized), try heuristics:
+            if (!r0 || !r1) {
+                try {
+                    // try find rects near the fuel hub on the right-hand side
+                    const rects = Array.from(svg.querySelectorAll('rect'));
+                    if (!r0) {
+                        r0 = rects.find(r => {
+                            const x = Number(r.getAttribute('x')) || 0;
+                            const y = Number(r.getAttribute('y')) || 0;
+                            return x > (this.fuelHubX - 40) && x < (this.fuelHubX + 40) && y < (this.fuelHubY + 20) && y > (this.fuelHubY - 80);
+                        }) || r0;
+                    }
+                    if (!r1) {
+                        r1 = rects.find(r => {
+                            const x = Number(r.getAttribute('x')) || 0;
+                            const y = Number(r.getAttribute('y')) || 0;
+                            return x > (this.fuelHubX + 40) && y > (this.fuelHubY - 20) && y < (this.fuelHubY + 80);
+                        }) || r1;
+                    }
+                } catch (e) { /* ignore heuristic failures */ }
+            }
+            if (!r0 || !r1) {
+                // Could not find explicit anchors; don't fail hard — fall back to a conservative default
+                // Attempt to derive a0 from the current fuel-pointer transform if available
+                try {
+                    const g = svg.querySelector('#fuel-pointer');
+                    if (g) {
+                        const t = g.getAttribute('transform') || g.getAttribute('style') || '';
+                        const m = (t || '').toString().match(/rotate\(([-0-9\.]+)\s+([0-9\.\-]+)\s+([0-9\.\-]+)\)/);
+                        const a0 = m ? Number(m[1]) : -90; // default guess
+                        const a200 = a0 + 120; // reasonable sweep
+                        this._fuelAngle0 = a0;
+                        this._fuelAngle200 = a200;
+                        this._fuelAngleSlope = (a200 - a0) / 200;
+                        console.debug('calibrateFuelPointer: fallback calibration applied', { a0: this._fuelAngle0, a200: this._fuelAngle200, slope: this._fuelAngleSlope });
+                        // Ensure pointer rests at calibrated zero
+                        try { if (g) g.setAttribute('transform', `rotate(${this._fuelAngle0} ${this.fuelHubX} ${this.fuelHubY})`); } catch (e) {}
+                        return true;
+                    }
+                } catch (e) { /* ignore fallback errors */ }
+                return false;
+            }
             const b0 = r0.getBBox();
             const b1 = r1.getBBox();
             const c0x = b0.x + b0.width/2, c0y = b0.y + b0.height/2;
@@ -3397,8 +3784,19 @@ class RiskDashboard {
         if (!g) return;
         if (typeof this._fuelAngleSlope !== 'number') {
             // attempt auto-calibration with default selectors
-            this.calibrateFuelPointer();
-            if (typeof this._fuelAngleSlope !== 'number') return;
+            const ok = this.calibrateFuelPointer();
+            if (!ok && typeof this._fuelAngleSlope !== 'number') {
+                // final fallback: derive a usable mapping so the pointer can move
+                try {
+                    // If we have a stored last angle, use it as a0; otherwise pick a sensible default
+                    const curTransform = g.getAttribute('transform') || '';
+                    const m = (curTransform || '').toString().match(/rotate\(([-0-9\.]+)\s+([0-9\.\-]+)\s+([0-9\.\-]+)\)/);
+                    const a0 = m ? Number(m[1]) : -90;
+                    const a200 = a0 + 120;
+                    this._fuelAngle0 = a0; this._fuelAngle200 = a200; this._fuelAngleSlope = (a200 - a0) / 200;
+                    console.debug('updateFuelPointer: applied fallback calibration', { a0, a200, slope: this._fuelAngleSlope });
+                } catch (e) { return; }
+            }
         }
         const v = Math.max(0, Math.min(200, Number(value) || 0));
         const angle = this._fuelAngle0 + this._fuelAngleSlope * v;
@@ -3871,6 +4269,10 @@ class RiskDashboard {
                 if (!this.engineActive) {
                     // Snap pointers to zero when turning off
                     this.snapPointersToZero();
+                    // Ensure all pointers are visually at their calibrated zero
+                    try { this.forceRotateSpeedPointer(0); } catch (e) {}
+                    try { if (typeof this._fuelAngle0 === 'number') this.updateFuelPointer(0); } catch (e) {}
+                    try { if (typeof this._tempAngle0 === 'number') this.updateTempPointer(0); } catch (e) {}
                     // RPM to zero
                     try { if (typeof this.setRpmToZero === 'function') this.setRpmToZero(); } catch (e) {}
                     // create a partial dim overlay that leaves the engine area clear

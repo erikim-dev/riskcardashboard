@@ -1,11 +1,11 @@
 {
   "issuesOpenValue": 206,
-  "netLossValue": "93.78 M",
-  "MTD Risk Events": 5,
-  "ytdRiskEvents": 263,
-  "appetiteConsumption": "49.35%",
-  "noOfMaterialIssues": 23,
-  "SRT": "32%",
+  "netLossValue": "90.75 M",
+  "MTD Risk Events": 2,
+  "ytdRiskEvents": 266,
+  "appetiteConsumption": "47.76%",
+  "noOfMaterialIssues": 26,
+  "SRT": "68%",
   "KRIs": "6.30%",
   "alerts": [
     {
@@ -65,7 +65,7 @@
         "KES >130m<=190m - Trigger",
         "KES >190m - Risk"
       ],
-      "Appetite Consumption Outcome": "At Target (93.78M)",
+      "Appetite Consumption Outcome": "At Target (90.75M)",
       "SRTs Threshold": [
         "0-10% - Target",
         ">10% <50% - Target",
@@ -86,7 +86,7 @@
         "1 - Trigger",
         "0 - Risk"
       ],
-      "Change KRIs Performance (Avg Score) Outcome": "Target (2)",
+      "Change KRIs Performance (Avg Score) Outcome": "Target (5)",
       "outcome": "At-Target",
       "Overall Outcome": "At-Target"
     },
@@ -103,13 +103,13 @@
         ">10 <20 - Trigger",
         ">20 - Risk"
       ],
-      "Issues/milestones at Risk Outcome": "Target (7)",
+      "Issues/milestones at Risk Outcome": "Target (5)",
       "No of Material Issues (Major/Critical)": [
         ">5 <10 - Target",
         ">10 <20 - Trigger",
         ">20 - Risk"
       ],
-      "No of Material Issues (Major/Critical) Outcome": "Risk (23)",
+      "No of Material Issues (Major/Critical) Outcome": "Risk (27)",
       "Risk Events Timelines Threshold": [
         "=>=95% - Target",
         "90-94% - Trigger",
@@ -127,7 +127,7 @@
         "10-15% - Trigger",
         ">15% - Risk"
       ],
-      "DWB Overdue Outcome": "Trigger (10%)",
+      "DWB Overdue Outcome": "Target (5%)",
       "outcome": "At Target",
       "Overall Outcome": "At Trigger"
     },
@@ -156,7 +156,7 @@
             ">=75%-<85% - Trigger",
             "<75% - Risk"
           ],
-          " plan execution Outcome": "Target (94%)"
+          " plan execution Outcome": "Target (95%)"
         }
       }
     },
@@ -168,7 +168,7 @@
         ">=90%",
         "<90% - Risk"
       ],
-      "% of KIs assessed on time Outcome": "Trigger (98%)",
+      "% of KIs assessed on time Outcome": "Trigger (96%)",
       "Risk Types without KIs on ORMS": [
         "0 - Target",
         "N/A - Trigger",
@@ -192,7 +192,7 @@
         "<3% - Trigger",
         ">3% - Risk"
       ],
-      "Overdue Mandatory Training Outcome": "Target (0%)",
+      "Overdue Mandatory Training Outcome": "Target (0.050%)",
       "Overall Outcome": "At Target"
     },
     "fuel-control": {
@@ -208,7 +208,7 @@
         "KES >130m<=190m - Trigger",
         "KES >190m - Risk"
       ],
-      "Appetite Consumption Outcome": "Target (93.78M)",
+      "Appetite Consumption Outcome": "Target (82.64M)",
       "Overall Outcome": "At Target"
     },
     "srt-metrics": {

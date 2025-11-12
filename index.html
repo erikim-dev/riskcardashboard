@@ -32,6 +32,10 @@
     body.powered-off .service-card-action.blinking { animation: none !important; }
     .powered-off-overlay { position:absolute; inset:0; z-index:2; pointer-events:none; background: radial-gradient(120% 80% at 50% 50%, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.9) 78%); }
     </style>
+    <style>
+    /* Visual cue when a control is targeted from the dashboard SVG */
+    .control-item.highlight { outline: 2px solid #3be0ff; box-shadow: 0 2px 10px rgba(59,224,255,0.12); }
+    </style>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -246,7 +250,222 @@
             </div>
         </div>
     </div>
-    <script src="script.js"></script>
+    <script>
+    // Only one warning light detail panel expanded at a time
+    document.addEventListener('DOMContentLoaded', function() {
+        // Helper: collapse any expanded control-items
+        function collapseAllExcept(keep) {
+            // Collapse and fully reset all control-items except the optional `keep` element.
+            document.querySelectorAll('.control-item').forEach(function(other) {
+                if (other === keep) return;
+
+                // remove UI state classes used by the inline detail flow
+                other.classList.remove('expanded', 'focused', 'control-open');
+
+                // remove any inline detail DOM inserted by the popup renderer
+                var detail = other.querySelector('.control-inline-detail');
+                if (detail) detail.remove();
+
+                // reset visual indicator styles
+                try {
+                    var ind = other.querySelector('.status-indicator');
+                    if (ind) {
+                        ind.style.width = '';
+                        ind.style.height = '';
+                        ind.style.boxShadow = '';
+                    }
+                } catch (e) {}
+
+                // restore original data-status if it was saved during open
+                try {
+                    var orig = other.getAttribute('data-status-original');
+                    if (orig !== null && orig !== undefined) {
+                        other.setAttribute('data-status', orig);
+                        other.removeAttribute('data-status-original');
+                    }
+                } catch (e) {}
+            });
+
+            // clear focused state on the container so all control-items are visible
+            try { var container = document.querySelector('.control-items'); if (container) container.classList.remove('focused'); } catch (e) {}
+
+            // Ensure the top-right alert banner is refreshed when panels close so
+            // the indicator returns to the default state if applicable.
+            try { if (window.dashboard && typeof window.dashboard.updateAlerts === 'function') window.dashboard.updateAlerts(); } catch (e) {}
+        }
+
+        // Click to toggle control-items in the right panel
+        document.querySelectorAll('.control-item').forEach(function(item) {
+            item.addEventListener('click', function(e) {
+                // Close service card when a control-item is clicked
+                // The service card is opened by adding 'flipped' class to .control-environment
+                var controlEnv = document.querySelector('.control-environment');
+                if (controlEnv && controlEnv.classList.contains('flipped')) {
+                    controlEnv.classList.remove('flipped');
+                    // Also reset service-panel visibility
+                    var servicePanel = document.querySelector('.service-panel');
+                    if (servicePanel) {
+                        servicePanel.style.visibility = 'hidden';
+                        servicePanel.style.opacity = '0';
+                    }
+                    // Reset h4 title back to default
+                    var h4 = controlEnv.querySelector('h4');
+                    if (h4) {
+                        var originalTitle = controlEnv.dataset._originalTitle;
+                        h4.textContent = originalTitle || 'Control Environment Status';
+                    }
+                    // Reset service-card action button
+                    var actionEl = document.querySelector('.service-card-action');
+                    if (actionEl) {
+                        actionEl.classList.remove('service-card-return');
+                        actionEl.textContent = 'Open Service Card Status';
+                        actionEl.onclick = null;
+                    }
+                }
+
+                if (item.classList.contains('expanded')) {
+                    item.classList.remove('expanded');
+                } else {
+                    collapseAllExcept(item);
+                    item.classList.add('expanded');
+                            // move focus for keyboard users without causing a scroll jump
+                            item.setAttribute('tabindex', '-1');
+                            try {
+                                item.focus({ preventScroll: true });
+                            } catch (e) {
+                                // older browsers may not support preventScroll
+                                item.focus();
+                            }
+                }
+            });
+        });
+
+        // Map from common SVG warning-light ids or data attributes to control-item ids
+        function findControlForSvgElement(svgEl) {
+            if (!svgEl) return null;
+            // direct data-control attribute (preferred)
+            var controlId = svgEl.getAttribute && (svgEl.getAttribute('data-control') || svgEl.getAttribute('data-control-id'));
+            if (controlId) return document.getElementById(controlId);
+
+            // walk up to find an element with data-control
+            var walker = svgEl;
+            while (walker && walker !== document) {
+                controlId = walker.getAttribute && (walker.getAttribute('data-control') || walker.getAttribute('data-control-id'));
+                if (controlId) return document.getElementById(controlId);
+                walker = walker.parentNode;
+            }
+
+            // fallback: try to match by id naming conventions
+            var id = svgEl.id || (svgEl.getAttribute && svgEl.getAttribute('id'));
+            if (id) {
+                // common patterns: 'engine-warning' -> 'engine-control', 'abs-light' -> 'abs-control'
+                var candidate = id.replace(/(-light|-warning|-warning-light|_light|_warning)$/i, '');
+                // if candidate ends with '-dot' or similar, trim
+                candidate = candidate.replace(/(-dot|-icon)$/i, '');
+                // try common suffix
+                var tryId = candidate + '-control';
+                var el = document.getElementById(tryId);
+                if (el) return el;
+                // also try prefixing
+                el = document.getElementById('' + candidate + 'control');
+                if (el) return el;
+            }
+
+            return null;
+        }
+
+        // Why/what/outcome: Attach delegation to #car-dashboard-svg so clicking an SVG warning light
+        // focuses and expands the corresponding control-item on the right. Outcome: only that
+        // control-item remains expanded and receives focus.
+        var svgRoot = document.getElementById('car-dashboard-svg');
+        if (svgRoot) {
+            svgRoot.addEventListener('click', function(e) {
+                var target = e.target;
+                if (!target) return;
+
+                // attempt to find matching control (allow closest with id for some SVG structures)
+                var control = findControlForSvgElement(target) || (target.closest ? findControlForSvgElement(target.closest('[id]')) : null);
+                if (control) {
+                    // Close the service card if it's open by removing the 'flipped' class from control-environment
+                    var controlEnv = document.querySelector('.control-environment');
+                    if (controlEnv && controlEnv.classList.contains('flipped')) {
+                        controlEnv.classList.remove('flipped');
+                        // Also reset service-panel visibility
+                        var servicePanel = document.querySelector('.service-panel');
+                        if (servicePanel) {
+                            servicePanel.style.visibility = 'hidden';
+                            servicePanel.style.opacity = '0';
+                        }
+                        // Reset h4 title back to default
+                        var h4 = controlEnv.querySelector('h4');
+                        if (h4) {
+                            var originalTitle = controlEnv.dataset._originalTitle;
+                            h4.textContent = originalTitle || 'Control Environment Status';
+                        }
+                        // Reset service-card action button
+                        var actionEl = document.querySelector('.service-card-action');
+                        if (actionEl) {
+                            actionEl.classList.remove('service-card-return');
+                            actionEl.textContent = 'Open Service Card Status';
+                            actionEl.onclick = null;
+                        }
+                    }
+
+                    // If the mapped control is already expanded, treat this as a toggle -> collapse all
+                    if (control.classList.contains('expanded')) {
+                        collapseAllExcept(null);
+                        // refresh alerts/UI state
+                        try { if (window.dashboard && typeof window.dashboard.updateAlerts === 'function') window.dashboard.updateAlerts(); } catch (e) {}
+                        return;
+                    }
+
+                    // FROM-SVG: collapse other control panels and then programmatically
+                    // trigger a click on the matching control-item so it follows the same
+                    // code-path as a user click in the right panel (opens inline detail,
+                    // sets .focused/.control-open classes, updates indicators, etc.).
+                    collapseAllExcept(control);
+                    try {
+                        // Trigger the same click handler that runs when a user clicks the
+                        // right-panel item. Use dispatchEvent so event listeners attached
+                        // with addEventListener receive it.
+                        var evt = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+                        control.dispatchEvent(evt);
+                    } catch (err) {
+                        try { control.click(); } catch (e) { /* ignore */ }
+                    }
+                } else {
+                    // if clicked somewhere in the SVG that's not mapped, collapse everything
+                    collapseAllExcept(null);
+                    try { if (window.dashboard && typeof window.dashboard.updateAlerts === 'function') window.dashboard.updateAlerts(); } catch (e) {}
+                }
+            });
+        }
+
+        // Pointer zeroing is handled by script.js applyPowerState() which manages:
+        // - snapPointersToZero() when powered off
+        // - animatePointersToCurrent() when powered on
+        // We rely on script.js to handle pointer state management
+
+            // Collapse all expanded control-items when clicking outside the dashboard SVG
+            // or outside the right-panel. This makes the UI return to its default state
+            // when users click back or elsewhere on the page.
+            document.addEventListener('click', function(e) {
+                try {
+                    var clickedInSvg = e.target && e.target.closest && e.target.closest('#car-dashboard-svg');
+                    var clickedInPanel = e.target && e.target.closest && e.target.closest('.side-panel.right-panel');
+                    // if click is neither inside the SVG nor inside the right panel, collapse everything
+                    if (!clickedInSvg && !clickedInPanel) {
+                        collapseAllExcept(null);
+                        try { if (window.dashboard && typeof window.dashboard.updateAlerts === 'function') window.dashboard.updateAlerts(); } catch (err) {}
+                    }
+                } catch (err) {
+                    // defensive: if closest isn't supported or something unexpected, do nothing
+                }
+            });
+
+    });
+    </script>
+    <script src="script.js?v=20251110-1"></script>
     <!-- Dev speed controls removed for testing -->
 </body>
 </html>
