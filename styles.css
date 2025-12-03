@@ -403,6 +403,43 @@ body {
   color: var(--absa-red-light);
   text-shadow: var(--glow-red);
 }
+
+/* Ensure numeric values in the gauges render white in the main view (override any SVG fill or inherited grey) */
+.gauge-value,
+.gauge-label,
+.car-dashboard-wrapper svg text.gauge-value,
+#percent-dynamic-value,
+#rpm-value,
+#speed-value,
+text.percent-dynamic-value,
+.car-dashboard-wrapper svg text {
+  fill: #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* RPM gauge percentage text - hidden by default and when powered off */
+#percent-dynamic-value,
+#rpm-value,
+#gauge-dynamic-value,
+text.percent-dynamic-value {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Show percentage text instantly when engine is active - with hover enabled */
+body:not(.powered-off) #percent-dynamic-value,
+body:not(.powered-off) #rpm-value,
+body:not(.powered-off) #gauge-dynamic-value,
+body:not(.powered-off) text.percent-dynamic-value {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.fuel-gauge-risk { top: 25%; left: 10%; }
+.service-card { margin: 6px 8px; padding: 4px 6px; border-radius: 8px; background: linear-gradient(90deg, rgba(0,191,255,0.05), rgba(0,191,255,0.09)); border: 1px solid rgba(0,191,255,0.12); cursor: pointer; }
+.service-card-inner { display:flex; align-items:center; justify-content:space-between; gap:4px; min-width:0; }
+.service-card-title { color: #dfeff6; font-weight:600; font-size:0.88rem; }
 /* Auto-hide right panel functionality */
 .right-panel.panel-collapsed {
     transform: translateX(calc(100% - 40px));
@@ -456,42 +493,6 @@ body {
         border-bottom: none;
     }
 }
-/* Ensure numeric values in the gauges render white in the main view (override any SVG fill or inherited grey) */
-.gauge-value,
-.gauge-label,
-.car-dashboard-wrapper svg text.gauge-value,
-#percent-dynamic-value,
-#rpm-value,
-#speed-value,
-text.percent-dynamic-value,
-.car-dashboard-wrapper svg text {
-  fill: #ffffff !important;
-  color: #ffffff !important;
-}
-
-/* RPM gauge percentage text - hidden by default and when powered off */
-#percent-dynamic-value,
-#rpm-value,
-#gauge-dynamic-value,
-text.percent-dynamic-value {
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* Show percentage text instantly when engine is active - with hover enabled */
-body:not(.powered-off) #percent-dynamic-value,
-body:not(.powered-off) #rpm-value,
-body:not(.powered-off) #gauge-dynamic-value,
-body:not(.powered-off) text.percent-dynamic-value {
-  opacity: 1;
-  pointer-events: auto;
-  cursor: pointer;
-}
-
-.fuel-gauge-risk { top: 25%; left: 10%; }
-.service-card { margin: 6px 8px; padding: 4px 6px; border-radius: 8px; background: linear-gradient(90deg, rgba(0,191,255,0.05), rgba(0,191,255,0.09)); border: 1px solid rgba(0,191,255,0.12); cursor: pointer; }
-.service-card-inner { display:flex; align-items:center; justify-content:space-between; gap:4px; min-width:0; }
-.service-card-title { color: #dfeff6; font-weight:600; font-size:0.88rem; }
 /* Allow the action label to shrink on narrow screens instead of wrapping */
 .service-card-action { color: #00bfff; font-weight:600; text-align:right; /* fluid font-size: small screens shrink the text */
   font-size: clamp(0.62rem, 1.0vw + 0.36rem, 0.86rem);
@@ -1631,4 +1632,5 @@ html, body, .dashboard-container {
   transform: none !important;
   zoom: 1 !important; /* neutralize any zoom property if injected */
 }
+
 
