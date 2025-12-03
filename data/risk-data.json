@@ -109,7 +109,7 @@
         ">10 <20 - Trigger",
         ">20 - Risk"
       ],
-      "No of Material Issues (Major/Critical) Outcome": "Trigger (15)",
+      "No of Material Issues (Major/Critical) Outcome": "Trigger (14)",
       "Risk Events Timelines Threshold": [
         "=>=95% - Target",
         "90-94% - Trigger",
