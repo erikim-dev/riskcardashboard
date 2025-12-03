@@ -403,7 +403,59 @@ body {
   color: var(--absa-red-light);
   text-shadow: var(--glow-red);
 }
+/* Auto-hide right panel functionality */
+.right-panel.panel-collapsed {
+    transform: translateX(calc(100% - 40px));
+    transition: transform 400ms cubic-bezier(0.22, 0.9, 0.27, 1);
+}
 
+.right-panel {
+    transition: transform 400ms cubic-bezier(0.22, 0.9, 0.27, 1);
+}
+
+.right-panel-toggle {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1000;
+    background: var(--absa-red);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+    padding: 12px 8px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+    transition: background 200ms ease;
+}
+
+.right-panel-toggle:hover {
+    background: var(--absa-red-light);
+}
+
+.right-panel-toggle:focus {
+    outline: 3px solid rgba(255, 255, 255, 0.2);
+    outline-offset: -3px;
+}
+
+/* Adjust for small screens */
+@media (max-width: 860px) {
+    .right-panel.panel-collapsed {
+        transform: translateY(calc(100% - 50px));
+    }
+    
+    .right-panel-toggle {
+        top: auto;
+        bottom: 0;
+        right: 50%;
+        transform: translateX(50%);
+        border-radius: 8px 8px 0 0;
+        border-right: 1px solid var(--border-color);
+        border-bottom: none;
+    }
+}
 /* Ensure numeric values in the gauges render white in the main view (override any SVG fill or inherited grey) */
 .gauge-value,
 .gauge-label,
@@ -1579,3 +1631,4 @@ html, body, .dashboard-container {
   transform: none !important;
   zoom: 1 !important; /* neutralize any zoom property if injected */
 }
+
