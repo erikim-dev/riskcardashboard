@@ -1,12 +1,12 @@
 {
-  "issuesOpenValue": 206,
-  "netLossValue": "93.78 M",
+  "issuesOpenValue": 257,
+  "netLossValue": "98.00 M",
   "MTD Risk Events": 5,
-  "ytdRiskEvents": 263,
-  "appetiteConsumption": "49.35%",
-  "noOfMaterialIssues": 23,
+  "ytdRiskEvents": 289,
+  "appetiteConsumption": "51.57%",
+  "noOfMaterialIssues": 14,
   "SRT": "32%",
-  "KRIs": "6.30%",
+  "KRIs": "0.30%",
   "alerts": [
     {
       "id": "alert-1",
@@ -17,7 +17,7 @@
   "controlSystems": {
     "changeManagement": "at-target",
     "controlEnvironment": "at-trigger",
-    "controlWeaknesses": "at-trigger",
+    "controlWeaknesses": "at-target",
     "managementInfo": "at-target",
     "controlProcesses": "at-target",
     "bcmResilience": "at-target",
@@ -65,13 +65,13 @@
         "KES >130m<=190m - Trigger",
         "KES >190m - Risk"
       ],
-      "Appetite Consumption Outcome": "At Target (93.78M)",
+      "Appetite Consumption Outcome": "At Target (98.00 M)",
       "SRTs Threshold": [
         "0-10% - Target",
         ">10% <50% - Target",
         ">=50% - Risk"
       ],
-      "SRTs Outcome": "Trigger (15%)"
+      "SRTs Outcome": "Trigger (32%)"
     },
     "esp-control": {
       "measurement": "Change Management Metrics",
@@ -97,39 +97,39 @@
         "<5 - Trigger",
         ">=5 - Risk"
       ],
-      "Issues Overdue/Reopened/Failed IV Outcome": "Trigger (4)",
+      "Issues Overdue/Reopened/Failed IV Outcome": "Trigger (2)",
       "Issues/milestones at Risk": [
         ">5 <10 - Target",
         ">10 <20 - Trigger",
         ">20 - Risk"
       ],
-      "Issues/milestones at Risk Outcome": "Target (7)",
+      "Issues/milestones at Risk Outcome": "Target (8)",
       "No of Material Issues (Major/Critical)": [
         ">5 <10 - Target",
         ">10 <20 - Trigger",
         ">20 - Risk"
       ],
-      "No of Material Issues (Major/Critical) Outcome": "Risk (23)",
+      "No of Material Issues (Major/Critical) Outcome": "Trigger (15)",
       "Risk Events Timelines Threshold": [
         "=>=95% - Target",
         "90-94% - Trigger",
         "<90% - Risk"
       ],
-      "Risk Events Timelines Outcome": "Target (96%)",
+      "Risk Events Timelines Outcome": "Target (95%)",
       "Policy Localization Threshold": [
         "=>=95% - Target",
         "=>85% - Trigger",
         "<85% - Risk"
       ],
-      "Policy Localization Outcome": "Target (97%)",
+      "Policy Localization Outcome": "Target (99%)",
       "DWB Overdue Threshold": [
         "<10% - Target",
         "10-15% - Trigger",
         ">15% - Risk"
       ],
-      "DWB Overdue Outcome": "Trigger (10%)",
+      "DWB Overdue Outcome": "Target (3%)",
       "outcome": "At Target",
-      "Overall Outcome": "At Trigger"
+      "Overall Outcome": "At Target"
     },
     "abs-control": {
       "measurement": "Control Processes Metrics",
@@ -146,7 +146,7 @@
         ">10%-=<20% - Trigger",
         ">20% - Risk"
       ],
-      "% UNSAT/NI Reports (YTD) Outcome": "Target (6%)",
+      "% UNSAT/NI Reports (YTD) Outcome": "Target (7%)",
       "outcome": "At Target",
       "Overall Outcome": "At-target",
       "C": {
@@ -156,7 +156,7 @@
             ">=75%-<85% - Trigger",
             "<75% - Risk"
           ],
-          " plan execution Outcome": "Target (94%)"
+          " plan execution Outcome": "Target (89%)"
         }
       }
     },
@@ -168,7 +168,7 @@
         ">=90%",
         "<90% - Risk"
       ],
-      "% of KIs assessed on time Outcome": "Trigger (98%)",
+      "% of KIs assessed on time Outcome": "Trigger (99%)",
       "Risk Types without KIs on ORMS": [
         "0 - Target",
         "N/A - Trigger",
@@ -208,7 +208,7 @@
         "KES >130m<=190m - Trigger",
         "KES >190m - Risk"
       ],
-      "Appetite Consumption Outcome": "Target (93.78M)",
+      "Appetite Consumption Outcome": "Target (98.00M)",
       "Overall Outcome": "At Target"
     },
     "srt-metrics": {
