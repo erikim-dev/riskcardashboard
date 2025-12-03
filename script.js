@@ -42,43 +42,7 @@
                 const h = map.hour || '00';
                 const m = map.minute || '00';
                 mainLastUpdated.textContent = `${Y}-${M}-${D} ${h}:${m}`;
-            } catch (e) {
-                // Auto-hide right panel until interaction
-(function initAutoHideRightPanel() {
-    const rightPanel = document.querySelector('.side-panel.right-panel');
-    if (!rightPanel) return;
-    
-    // Add a collapsed state class on load
-    rightPanel.classList.add('panel-collapsed');
-    
-    // Create a toggle button/tab to show the panel
-    const toggleTab = document.createElement('button');
-    toggleTab.className = 'right-panel-toggle';
-    toggleTab.innerHTML = '◀'; // Arrow pointing left
-    toggleTab.setAttribute('aria-label', 'Show control panel');
-    toggleTab.setAttribute('aria-expanded', 'false');
-    
-    // Insert toggle button
-    rightPanel.parentNode.insertBefore(toggleTab, rightPanel);
-    
-    // Toggle panel visibility
-    const togglePanel = () => {
-        const isCollapsed = rightPanel.classList.toggle('panel-collapsed');
-        toggleTab.innerHTML = isCollapsed ? '◀' : '▶';
-        toggleTab.setAttribute('aria-expanded', String(!isCollapsed));
-    };
-    
-    toggleTab.addEventListener('click', togglePanel);
-    
-    // Auto-expand when any interactive element inside is clicked
-    rightPanel.addEventListener('click', (e) => {
-        if (rightPanel.classList.contains('panel-collapsed')) {
-            rightPanel.classList.remove('panel-collapsed');
-            toggleTab.innerHTML = '▶';
-            toggleTab.setAttribute('aria-expanded', 'true');
-        }
-    });
-})();
+            } catch (e) {            
                 // Fallback to manual UTC+3 calculation if Intl is not available
                 const now = new Date();
                 const kenyaOffsetMinutes = 3 * 60;
@@ -202,7 +166,42 @@ class RiskDashboard {
             pane.style.border = 'none';
             pane.style.boxShadow = 'none';
             pane.style.pointerEvents = 'none';
-
+            // Auto-hide right panel until interaction
+(function initAutoHideRightPanel() {
+    const rightPanel = document.querySelector('.side-panel.right-panel');
+    if (!rightPanel) return;
+    
+    // Add a collapsed state class on load
+    rightPanel.classList.add('panel-collapsed');
+    
+    // Create a toggle button/tab to show the panel
+    const toggleTab = document.createElement('button');
+    toggleTab.className = 'right-panel-toggle';
+    toggleTab.innerHTML = '◀'; // Arrow pointing left
+    toggleTab.setAttribute('aria-label', 'Show control panel');
+    toggleTab.setAttribute('aria-expanded', 'false');
+    
+    // Insert toggle button
+    rightPanel.parentNode.insertBefore(toggleTab, rightPanel);
+    
+    // Toggle panel visibility
+    const togglePanel = () => {
+        const isCollapsed = rightPanel.classList.toggle('panel-collapsed');
+        toggleTab.innerHTML = isCollapsed ? '◀' : '▶';
+        toggleTab.setAttribute('aria-expanded', String(!isCollapsed));
+    };
+    
+    toggleTab.addEventListener('click', togglePanel);
+    
+    // Auto-expand when any interactive element inside is clicked
+    rightPanel.addEventListener('click', (e) => {
+        if (rightPanel.classList.contains('panel-collapsed')) {
+            rightPanel.classList.remove('panel-collapsed');
+            toggleTab.innerHTML = '▶';
+            toggleTab.setAttribute('aria-expanded', 'true');
+        }
+    });
+})();
             // inner container for any future content; leave empty for a clean page
             const inner = document.createElement('div');
             inner.className = 'service-card-independent-inner';
@@ -4497,3 +4496,4 @@ class RiskDashboard {
     }
 
 })();
+
